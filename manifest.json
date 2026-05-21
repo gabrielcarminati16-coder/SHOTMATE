@@ -1,12 +1,18 @@
 {
   "name": "ShotMate",
   "short_name": "ShotMate",
-  "start_url": "./login.html",
+  "start_url": "/SHOTMATE/login.html",
   "display": "standalone",
   "background_color": "#000411",
   "theme_color": "#000b1d",
   "orientation": "portrait",
   "icons": [
+    {
+      "src": "https://img.icons8.com/fluent/192/tequila-shot.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
     {
       "src": "https://img.icons8.com/fluent/512/tequila-shot.png",
       "type": "image/png",
