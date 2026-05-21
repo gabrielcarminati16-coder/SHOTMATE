@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login ShotMate</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            background: #000b1d; 
+            color: white; 
+            text-align: center; 
+            padding: 20px;
+        }
+        .login-box { 
+            background: #001533; 
+            padding: 35px 25px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 360px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 1px solid rgba(0, 82, 204, 0.2);
+        }
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: #8a99ad;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background-color: #000b1d;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .form-group input:focus {
+            border-color: #0077ff;
+            outline: none;
+        }
+        .remember-me-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 15px 0 20px 0;
+            text-align: left;
+            font-size: 13px;
+            color: #8a99ad;
+            cursor: pointer;
+            user-select: none;
+        }
+        .remember-me-container input {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            accent-color: #0077ff;
+        }
+        .btn-submit {
+            background: linear-gradient(135deg, #0052cc 0%, #0077ff 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            font-size: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 12px rgba(0, 119, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn-submit.signup-mode-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+            color: #5d6d7e;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .divider:not(:empty)::before { margin-right: .25em; }
+        .divider:not(:empty)::after { margin-left: .25em; }
+
+        .btn-google { 
+            background: white; 
+            color: #333; 
+            padding: 12px; 
+            border-radius: 10px; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold; 
+            width: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 10px; 
+            font-size: 14px;
+        }
+        .toggle-action {
+            margin-top: 18px;
+            font-size: 14px;
+            color: #8a99ad;
+            background: rgba(255,255,255,0.02);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .toggle-action span {
+            color: #0077ff;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .toggle-action span.signup-toggle {
+            color: #2ecc71;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2 style="margin-bottom: 5px; font-weight: 800; letter-spacing: 1px;">SHOTMATE</h2>
+        <p id="boxSubtitle" style="color: #3498db; font-size: 14px; font-weight: 600; margin-bottom: 25px;">ACCESSO PROFILO</p>
+        
+        <form id="authForm" onsubmit="handleAuth(event)">
+            <div class="form-group">
+                <label for="email">Indirizzo Email</label>
+                <input type="email" id="email" placeholder="Inserisci la tua email per accedere" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Inserisci la tua password" required>
+            </div>
+            
+            <label class="remember-me-container">
+                <input type="checkbox" id="rememberMe" checked>
+                <span>Rimani connesso in questo dispositivo</span>
+            </label>
+            
+            <button type="submit" id="btnSubmit" class="btn-submit">Accedi al tuo Profilo</button>
+        </form>
+
+        <div class="toggle-action" id="toggleActionBox">
+            Non hai ancora un account? <span class="signup-toggle" onclick="toggleAuthMode()">Registrati qui</span>
+        </div>
+
+        <div class="divider">oppure</div>
+
+        <button id="btnGoogle" class="btn-google">
+            <svg style="width:18px; height:18px;" viewBox="0 0 24 24">
+                <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.866-3.577-7.866-8s3.536-8 7.866-8c2.46 0 4.105 1.025 5.047 1.926l3.227-3.227C18.41 1.445 15.62 0 12.24 0 5.58 0 0 5.58 0 12.24s5.58 12.24 12.24 12.24c6.96 0 11.57-4.89 11.57-11.79 0-.795-.085-1.4-.195-2.405H12.24z"/>
+            </svg>
+            Continua con Google
+        </button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBeE7yFqkAhLZH7A04AG2NqramZCKElU2A",
+            authDomain: "shotmap-9cb58.firebaseapp.com",
+            projectId: "shotmap-9cb58",
+            storageBucket: "shotmap-9cb58.firebasestorage.app",
+            messagingSenderId: "39326588472",
+            appId: "1:39326588472:web:6ec34b0c4ed7e4cfc110cd"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        let isSignUpMode = false;
+
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            const btnSubmit = document.getElementById('btnSubmit');
+            const boxSubtitle = document.getElementById('boxSubtitle');
+            const toggleActionBox = document.getElementById('toggleActionBox');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+
+            if (isSignUpMode) {
+                boxSubtitle.innerText = "REGISTRAZIONE NUOVO UTENTE";
+                boxSubtitle.style.color = "#2ecc71";
+                btnSubmit.innerText = "Crea il tuo Account";
+                btnSubmit.classList.add('signup-mode-btn'); 
+                emailInput.placeholder = "Scegli l'email per il tuo account";
+                passwordInput.placeholder = "Crea una password sicura";
+                toggleActionBox.innerHTML = 'Hai già un profilo ShotMate? <span onclick="toggleAuthMode()">Accedi subito</span>';
+            } else {
+                boxSubtitle.innerText = "ACCESSO PROFILO";
+                boxSubtitle.style.color = "#3498db";
+                btnSubmit.innerText = "Accedi al tuo Profilo";
+                btnSubmit.classList.remove('signup-mode-btn'); 
+                emailInput.placeholder = "Inserisci la tua email per accedere";
+                passwordInput.placeholder = "Inserisci la tua password";
+                toggleActionBox.innerHTML = 'Non hai ancora un account? <span class="signup-toggle" onclick="toggleAuthMode()">Registrati qui</span>';
+            }
+        }
+
+        function handleAuth(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+
+            const persistenceType = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+
+            firebase.auth().setPersistence(persistenceType)
+                .then(() => {
+                    if (isSignUpMode) {
+                        return firebase.auth().createUserWithEmailAndPassword(email, password);
+                    } else {
+                        return firebase.auth().signInWithEmailAndPassword(email, password);
+                    }
+                })
+                .then(() => {
+                    window.location.href = 'index.html';
+                })
+                .catch(err => {
+                    let errorMessage = err.message;
+                    if (err.code === 'auth/wrong-password') errorMessage = 'La password inserita è errata.';
+                    if (err.code === 'auth/user-not-found') errorMessage = 'Nessun utente registrato con questa email.';
+                    if (err.code === 'auth/email-already-in-use') errorMessage = 'Questo indirizzo email è già associato a un account.';
+                    if (err.code === 'auth/weak-password') errorMessage = 'La password deve contenere almeno 6 caratteri.';
+                    if (err.code === 'auth/invalid-email') errorMessage = 'Il formato dell\'email non è valido.';
+                    alert("Attenzione: " + errorMessage);
+                });
+        }
+
+        document.getElementById('btnGoogle').addEventListener('click', () => {
+            const rememberMe = document.getElementById('rememberMe').checked;
+            const persistenceType = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+            const provider = new firebase.auth.GoogleAuthProvider();
+            
+            firebase.auth().setPersistence(persistenceType)
+                .then(() => firebase.auth().signInWithPopup(provider))
+                .then(() => window.location.href = 'index.html')
+                .catch(err => alert("Errore di autenticazione con Google: " + err.message));
+        });
+    </script>
+</body>
+</html>

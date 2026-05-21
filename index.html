@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShotMate</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="top-bar">
+        <span class="material-icons menu-icon">menu</span>
+        <h1 class="logo-cool">SHOTMATE</h1>
+        <div class="profile-pic" id="btnOpenProfileModal" style="cursor: pointer; position: relative;">
+            <span class="material-icons">account_circle</span>
+        </div>
+    </header>
+
+    <main class="main-content app-page active-page" id="page-home">
+        <div class="btn-container">
+            <button class="btn-add-cool" id="btnOpenModal">
+                <span class="btn-icon-animated">🥃</span>
+                <span class="btn-text">Aggiungi bicchierino</span>
+            </button>
+        </div>
+        <section class="collection-section">
+            <h3>I Miei Bicchierini</h3>
+            <div class="grid-shots" id="gridShots"></div>
+        </section>
+    </main>
+
+    <main class="main-content app-page" id="page-map">
+        <h3>SHOTMAP</h3>
+        <p style="color: #8a99ad; font-size: 13px; margin-bottom: 15px;">I tuoi brindisi nel mondo</p>
+        <div id="map"></div>
+    </main>
+
+    <main class="main-content app-page" id="page-stats">
+        <h3>Le Tue Statistiche</h3>
+        <p style="color: #8a99ad; font-size: 13px; margin-bottom: 15px;">I tuoi traguardi e record</p>
+        
+        <div class="stats-container">
+            <div class="badge-section">
+                <div class="badge-medal" id="badgeMedal">🪵</div>
+                <div class="badge-info">
+                    <h4 id="badgeRankName">Medaglia di Legno</h4>
+                    <p id="badgeNextRank">Aggiungi altri bicchierini per salire di livello!</p>
+                </div>
+            </div>
+
+            <div class="stats-grid-cool">
+                <div class="stat-card-cool card-total">
+                    <span class="material-icons icon-total">local_bar</span>
+                    <h2 id="stat-total">0</h2>
+                    <p>Bicchierini Totali</p>
+                </div>
+                
+                <div class="stat-card-cool card-cities">
+                    <span class="material-icons icon-cities">location_city</span>
+                    <h2 id="stat-cities">0</h2>
+                    <p>Città Visitate</p>
+                </div>
+
+                <div class="stat-card-cool card-regions" id="cardRegionsBtn" style="cursor: pointer; -webkit-tap-highlight-color: transparent;">
+                    <span class="material-icons icon-regions">map</span>
+                    <h2 id="stat-regions">0/20</h2>
+                    <p style="display: flex; align-items: center; gap: 4px;">Regioni d'Italia <span class="material-icons" style="font-size: 12px; margin: 0; color: #f1c40f;">touch_app</span></p>
+                </div>
+
+                <div class="stat-card-cool card-countries">
+                    <span class="material-icons icon-countries">public</span>
+                    <h2 id="stat-countries">0</h2>
+                    <p>Stati nel Mondo</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="regionsModal">
+        <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column;">
+            <h3>Checklist Regioni</h3>
+            <div id="regionsListContainer" style="overflow-y: auto; flex: 1; padding-right: 5px; margin-bottom: 15px;"></div>
+            <button class="btn-secondary" id="btnCloseRegionsModal" style="width: 100%;">Chiudi</button>
+        </div>
+    </div>
+
+    <main class="main-content app-page" id="page-amici">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <h3>Classifica Amici</h3>
+            <button id="btnOpenFriendModal" style="background: none; border: none; color: #0077ff; display: flex; align-items: center; gap: 4px; font-weight: bold; font-size: 14px; cursor: pointer;">
+                <span class="material-icons" style="font-size: 18px;">person_add</span> Inserisci Codice
+            </button>
+        </div>
+        <p style="color: #8a99ad; font-size: 13px; margin-bottom: 20px;">Confronta i tuoi brindisi con i veri amici</p>
+        <div class="friends-list" id="friendsLeaderboard"></div>
+    </main>
+
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal-content">
+            <h3>Il Tuo Profilo</h3>
+            <div class="my-code-box" style="background: #000b1d; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; border: 1px dashed #0077ff;">
+                <p style="font-size: 12px; color: #8a99ad; text-transform: uppercase;">Il tuo Codice Amico</p>
+                <h2 id="myFriendCodeDisplay" style="color: #f1c40f; letter-spacing: 2px; margin: 5px 0; font-size: 24px;">######</h2>
+                <p style="font-size: 11px; color: #5d6d7e;">Condividilo per farti aggiungere dagli altri</p>
+            </div>
+            <div class="form-group">
+                <label>Il tuo Nome Utente</label>
+                <input type="text" id="profileUsername" placeholder="Es. Andrea_Shot">
+            </div>
+            <div class="modal-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                <button class="btn-primary" id="btnSaveProfile" style="width: 100%;">Salva Profilo</button>
+                <button class="btn-secondary" id="btnLogout" style="width: 100%; background: #e74c3c; color: white; border: none; font-weight: bold; padding: 12px; border-radius: 10px; cursor: pointer;">Disconnetti (Logout)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="friendModal">
+        <div class="modal-content">
+            <h3>Aggiungi Amico</h3>
+            <p style="color: #8a99ad; font-size: 13px; margin-top: -15px; margin-bottom: 15px;">Inserisci il Codice Amico del tuo compagno per cercarlo nel database online e aggiungerlo alla classifica.</p>
+            <div class="form-group">
+                <input type="text" id="friendFriendCode" placeholder="Codice Amico (es. SM-84A2)" style="text-transform: uppercase;">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnCloseFriendModal">Annulla</button>
+                <button class="btn-primary" id="btnSaveFriend">Cerca e Connetti</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="shotModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Nuovo Bicchierino</h3>
+            <input type="hidden" id="shotId">
+            <div class="form-group">
+                <label>Foto del Bicchierino</label>
+                <input type="file" id="shotImage" accept="image/*" style="display: none;">
+                <div class="image-upload-box" id="imageUploadBox">
+                    <span class="material-icons upload-icon">add_a_photo</span>
+                    <span class="upload-text">AGGIUNGI IMMAGINE</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="text" id="shotCity" placeholder="Città (es. Milano, Roma) ">
+            </div>
+            <div class="form-group">
+                <input type="text" id="shotCountry" placeholder="Stato (es. Italia)">
+            </div>
+            <div class="form-group">
+                <input type="date" id="shotDate">
+            </div>
+            <div class="form-group">
+                <textarea id="shotNotes" placeholder="Note..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnCloseModal">Annulla</button>
+                <button class="btn-primary" id="btnSaveShot">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" data-page="page-home">
+            <span class="material-icons">home</span>
+            <span>Home</span>
+        </div>
+        <div class="nav-item" data-page="page-map">
+            <span class="material-icons">map</span>
+            <span>Mappa</span>
+        </div>
+        <div class="nav-item" data-page="page-stats">
+            <span class="material-icons">bar_chart</span>
+            <span>Stats</span>
+        </div>
+        <div class="nav-item" data-page="page-amici">
+            <span class="material-icons">people</span>
+            <span>Amici</span>
+        </div>
+    </nav>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBeE7yFqkAhLZH7A04AG2NqramZCKElU2A",
+            authDomain: "shotmap-9cb58.firebaseapp.com",
+            projectId: "shotmap-9cb58",
+            storageBucket: "shotmap-9cb58.firebasestorage.app",
+            messagingSenderId: "39326588472",
+            appId: "1:39326588472:web:6ec34b0c4ed7e4cfc110cd"
+        };
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+    </script>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
