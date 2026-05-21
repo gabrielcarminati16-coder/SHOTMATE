@@ -135,6 +135,19 @@
             color: #2ecc71;
         }
     </style>
+        <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000b1d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker Registrato con Successo!'))
+                .catch(err => console.log('Errore Service Worker:', err));
+        }
+    </script>
+
 </head>
 <body>
     <div class="login-box">

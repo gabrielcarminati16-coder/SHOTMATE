@@ -1,0 +1,17 @@
+{
+  "name": "ShotMate",
+  "short_name": "ShotMate",
+  "start_url": "login.html",
+  "display": "standalone",
+  "background_color": "#000411",
+  "theme_color": "#000b1d",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/91d/91839.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}
