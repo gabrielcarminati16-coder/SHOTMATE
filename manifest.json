@@ -1,7 +1,7 @@
 {
   "name": "ShotMate",
   "short_name": "ShotMate",
-  "start_url": "login.html",
+  "start_url": "./login.html",
   "display": "standalone",
   "background_color": "#000411",
   "theme_color": "#000b1d",

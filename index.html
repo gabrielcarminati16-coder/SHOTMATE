@@ -10,18 +10,20 @@
     
     <link rel="stylesheet" href="style.css">
     
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#000b1d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <script>
+        <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
+            // Aggiungi il punto e lo slash davanti a sw.js
+            navigator.serviceWorker.register('./sw.js')
                 .then(() => console.log('Service Worker Registrato!'))
                 .catch(err => console.log('Errore Service Worker:', err));
         }
     </script>
+
 </head>
 
 <body>
