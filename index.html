@@ -17,12 +17,14 @@
 
     <script>
         if ('serviceWorker' in navigator) {
+            // Il punto davanti allo slash indica la cartella corrente /SHOTMATE/
             navigator.serviceWorker.register('./sw.js')
                 .then(() => console.log('Service Worker Registrato con Successo!'))
                 .catch(err => console.log('Errore Service Worker:', err));
         }
     </script>
 </head>
+
 
 
 <body>
