@@ -153,7 +153,12 @@
 
     <div class="modal-overlay" id="profileModal">
         <div class="modal-content">
-            <h3>Il Tuo Profilo</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin-bottom: 0;">Il Tuo Profilo</h3>
+                <button id="btnCloseProfileModal" style="background:none; border:none; color:#8a99ad; cursor:pointer; padding:0; display:flex; align-items:center;">
+                    <span class="material-icons" style="font-size:26px;">close</span>
+                </button>
+            </div>
             <div class="my-code-box" style="background: #000b1d; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; border: 1px dashed #0077ff;">
                 <p style="font-size: 12px; color: #8a99ad; text-transform: uppercase;">Il tuo Codice Amico</p>
                 <h2 id="myFriendCodeDisplay" style="color: #f1c40f; letter-spacing: 2px; margin: 5px 0; font-size: 24px;">######</h2>
