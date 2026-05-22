@@ -148,6 +148,11 @@ if (btnOpenProfileModal) {
     });
 }
 
+const btnCloseProfileModal = document.getElementById('btnCloseProfileModal');
+if (btnCloseProfileModal) {
+    btnCloseProfileModal.addEventListener('click', () => profileModal.classList.remove('open'));
+}
+
 if (btnSaveProfile) {
     btnSaveProfile.addEventListener('click', async () => {
         const newName = profileUsernameInput.value.trim();
