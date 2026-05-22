@@ -1,4 +1,4 @@
-* Reset e Font */
+/* Reset e Font */
 * {
     margin: 0;
     padding: 0;
@@ -85,7 +85,7 @@ body {
 /* LA MAPPA NERA */
 #map {
     width: 100%;
-    height: calc(100vh - 210px);
+    height: calc(100vh - 280px);
     border-radius: 20px;
     background-color: #000b1d;
     border: 1px solid rgba(0, 82, 204, 0.3);
@@ -253,7 +253,9 @@ body {
     opacity: 0; 
     pointer-events: none; 
     transition: all 0.3s ease; 
-    padding: 20px; 
+    padding: 20px;
+    padding-top: max(20px, env(safe-area-inset-top));
+    box-sizing: border-box;
 }
 .modal-overlay.open { opacity: 1; pointer-events: auto; }
 .modal-content { background-color: #001c47; width: 100%; max-width: 400px; border-radius: 20px; padding: 20px; border: 1px solid rgba(0, 82, 204, 0.4); }
