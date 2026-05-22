@@ -2,21 +2,21 @@
   "name": "ShotMate",
   "short_name": "ShotMate",
   "description": "Traccia i tuoi bicchierini nel mondo",
-  "start_url": "/SHOTMATE/login.html",
-  "scope": "/SHOTMATE/",
+  "start_url": "/login.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#000411",
   "theme_color": "#000b1d",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/SHOTMATE/icon-192.png",
+      "src": "/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "/SHOTMATE/icon-512.png",
+      "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
