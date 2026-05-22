@@ -234,6 +234,38 @@
         </div>
     </nav>
 
+    <!-- Modal Collezione Amico -->
+    <div class="modal-overlay" id="friendCollectionModal">
+        <div class="modal-content" style="max-height: 88vh; display: flex; flex-direction: column; padding-bottom: 16px;">
+            <!-- Header -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <div style="display: flex; align-items: center; gap: 10px; min-width:0;">
+                    <span class="material-icons" style="font-size: 28px; color: #5d6d7e; flex-shrink:0;">account_circle</span>
+                    <div style="min-width:0;">
+                        <h3 id="friendCollectionName" style="margin-bottom: 0; font-size: 17px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Collezione</h3>
+                        <p id="friendCollectionCount" style="color:#8a99ad; font-size: 12px; margin:0;"></p>
+                    </div>
+                </div>
+                <button id="btnCloseFriendCollection" style="background:none; border:none; color:#8a99ad; cursor:pointer; flex-shrink:0;">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <!-- Barra ricerca -->
+            <div class="search-input-wrapper" style="margin-bottom: 12px;">
+                <span class="material-icons search-icon-inline">search</span>
+                <input type="text" id="friendCollectionSearch" placeholder="Cerca città, stato, note...">
+                <button class="clear-search-btn" id="clearFriendSearch" style="display:none;">
+                    <span class="material-icons" style="font-size:18px;">close</span>
+                </button>
+            </div>
+            <!-- Griglia bicchierini amico -->
+            <div style="overflow-y: auto; flex: 1;">
+                <div class="grid-shots" id="friendCollectionGrid"></div>
+                <p id="friendCollectionEmpty" style="display:none; text-align:center; color:#8a99ad; padding:30px 20px;">Nessun bicchierino trovato 🔍</p>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
