@@ -381,5 +381,17 @@ body {
 /* Stile aggiuntivo per rendere unico l'ID dell'utente */
 .friend-item.is-me h4 {
     color: #f1c40f; /* Il tuo nome risalterà in oro in classifica */
-              }
-           
+}
+
+/* Amici toccabili per vedere la collezione */
+.friend-item.friend-tappable {
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.friend-item.friend-tappable:active {
+    transform: scale(0.98);
+    background: linear-gradient(135deg, #001c5c 0%, #001533 100%);
+}
+
+
