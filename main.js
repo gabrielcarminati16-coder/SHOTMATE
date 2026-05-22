@@ -517,7 +517,7 @@ function renderLeaderboard() {
         if (position === 3) rankClass += " rank-3";
 
         const cardItem = document.createElement('div');
-        cardItem.className = `friend-item ${member.isMe ? 'is-me' : ''}`;
+        cardItem.className = `friend-item ${member.isMe ? 'is-me' : ''} ${!member.isMe ? 'friend-tappable' : ''}`;
         cardItem.innerHTML = `
             <div class="${rankClass}">${rankDisplay}</div>
             <span class="material-icons friend-avatar">account_circle</span>
@@ -525,8 +525,14 @@ function renderLeaderboard() {
                 <h4>${member.name} ${member.isMe ? '(Tu)' : ''}</h4>
                 <p>${member.shotsCount || 0} Bicchierini • Ultimo: ${member.lastCity || 'In attesa...'}</p>
             </div>
-            <div class="friend-badge-display">${getBadgeEmoji(member.shotsCount || 0)}</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <div class="friend-badge-display">${getBadgeEmoji(member.shotsCount || 0)}</div>
+                ${!member.isMe ? '<span class="material-icons" style="font-size:16px; color:#5d6d7e;">chevron_right</span>' : ''}
+            </div>
         `;
+        if (!member.isMe) {
+            cardItem.addEventListener('click', () => openFriendCollection(member));
+        }
         friendsLeaderboard.appendChild(cardItem);
     });
 }
@@ -638,3 +644,107 @@ window.editShotFromMap = function (id) {
     });
     window.editShot(id);
 };
+
+// --- 9. COLLEZIONE AMICO ---
+let friendCollectionShots = [];
+let friendCollectionSearch = "";
+
+const friendCollectionModal = document.getElementById('friendCollectionModal');
+const btnCloseFriendCollection = document.getElementById('btnCloseFriendCollection');
+const friendCollectionGrid = document.getElementById('friendCollectionGrid');
+const friendCollectionSearchInput = document.getElementById('friendCollectionSearch');
+const clearFriendSearchBtn = document.getElementById('clearFriendSearch');
+
+function openFriendCollection(member) {
+    // Reset UI
+    friendCollectionSearch = "";
+    if (friendCollectionSearchInput) { friendCollectionSearchInput.value = ""; }
+    if (clearFriendSearchBtn) clearFriendSearchBtn.style.display = "none";
+
+    const nameEl = document.getElementById('friendCollectionName');
+    const countEl = document.getElementById('friendCollectionCount');
+    if (nameEl) nameEl.innerText = `Collezione di ${member.name}`;
+
+    friendCollectionShots = [];
+    if (friendCollectionGrid) friendCollectionGrid.innerHTML = `<p style="grid-column:span 2; text-align:center; color:#8a99ad; padding:30px 0;">Caricamento...</p>`;
+    if (friendCollectionModal) friendCollectionModal.classList.add('open');
+
+    // Carica shots dell'amico in tempo reale
+    db.collection("users").doc(member.uid).collection("shots").get().then(snapshot => {
+        friendCollectionShots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        friendCollectionShots.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+        if (countEl) countEl.innerText = `${friendCollectionShots.length} bicchierini`;
+        renderFriendCollection();
+    }).catch(err => {
+        if (friendCollectionGrid) friendCollectionGrid.innerHTML = `<p style="grid-column:span 2; text-align:center; color:#e74c3c; padding:30px 0;">Errore nel caricamento.</p>`;
+        console.error("Errore carica collezione amico:", err);
+    });
+}
+
+function renderFriendCollection() {
+    if (!friendCollectionGrid) return;
+    friendCollectionGrid.innerHTML = "";
+
+    const emptyMsg = document.getElementById('friendCollectionEmpty');
+    const q = friendCollectionSearch.toLowerCase().trim();
+
+    let shots = friendCollectionShots;
+    if (q !== "") {
+        shots = shots.filter(s =>
+            (s.city || "").toLowerCase().includes(q) ||
+            (s.country || "").toLowerCase().includes(q) ||
+            (s.notes || "").toLowerCase().includes(q)
+        );
+    }
+
+    if (friendCollectionShots.length === 0) {
+        friendCollectionGrid.innerHTML = `<p style="grid-column:span 2; text-align:center; color:#8a99ad; padding:30px 0;">Questo amico non ha ancora bicchierini! 🥃</p>`;
+        if (emptyMsg) emptyMsg.style.display = "none";
+        return;
+    }
+    if (shots.length === 0) {
+        if (emptyMsg) emptyMsg.style.display = "block";
+        return;
+    }
+    if (emptyMsg) emptyMsg.style.display = "none";
+
+    shots.forEach(shot => {
+        const card = document.createElement('div');
+        card.className = 'shot-card';
+        const imgHtml = shot.image
+            ? `<img src="${shot.image}">`
+            : `<span class="material-icons" style="color:#0077ff">local_bar</span>`;
+        card.innerHTML = `
+            <div class="shot-img-container">${imgHtml}</div>
+            <h4>${shot.city || "Qualche parte"}</h4>
+            <p class="geo">${shot.country || "Mondo"}</p>
+            ${shot.date ? `<p class="date">${formatDate(shot.date)}</p>` : ''}
+            ${shot.notes ? `<p class="notes">${shot.notes}</p>` : ''}
+        `;
+        friendCollectionGrid.appendChild(card);
+    });
+}
+
+if (btnCloseFriendCollection) {
+    btnCloseFriendCollection.addEventListener('click', () => {
+        friendCollectionModal.classList.remove('open');
+    });
+}
+
+if (friendCollectionSearchInput) {
+    friendCollectionSearchInput.addEventListener('input', () => {
+        friendCollectionSearch = friendCollectionSearchInput.value;
+        if (clearFriendSearchBtn) clearFriendSearchBtn.style.display = friendCollectionSearch ? 'flex' : 'none';
+        renderFriendCollection();
+    });
+}
+
+if (clearFriendSearchBtn) {
+    clearFriendSearchBtn.addEventListener('click', () => {
+        friendCollectionSearchInput.value = "";
+        friendCollectionSearch = "";
+        clearFriendSearchBtn.style.display = 'none';
+        friendCollectionSearchInput.focus();
+        renderFriendCollection();
+    });
+}
