@@ -49,17 +49,41 @@
     </header>
 
     <main class="main-content app-page active-page" id="page-home">
-        <div class="btn-container">
-            <button class="btn-add-cool" id="btnOpenModal">
-                <span class="btn-icon-animated">🥃</span>
-                <span class="btn-text">Aggiungi bicchierino</span>
-            </button>
-        </div>
         <section class="collection-section">
-            <h3>I Miei Bicchierini</h3>
+            <div class="collection-header">
+                <h3>I Miei Bicchierini</h3>
+                <span class="shots-count-badge" id="shotsBadgeCount">0</span>
+            </div>
+            <!-- Barra Ricerca e Ordina -->
+            <div class="search-filter-bar">
+                <div class="search-input-wrapper">
+                    <span class="material-icons search-icon-inline">search</span>
+                    <input type="text" id="searchInput" placeholder="Cerca città, stato...">
+                    <button class="clear-search-btn" id="clearSearch" style="display:none;">
+                        <span class="material-icons" style="font-size:18px;">close</span>
+                    </button>
+                </div>
+                <div class="sort-buttons">
+                    <button class="sort-btn active" data-sort="newest" id="sortNewest">
+                        <span class="material-icons" style="font-size:14px;">schedule</span> Recenti
+                    </button>
+                    <button class="sort-btn" data-sort="oldest" id="sortOldest">
+                        <span class="material-icons" style="font-size:14px;">history</span> Vecchi
+                    </button>
+                    <button class="sort-btn" data-sort="city" id="sortCity">
+                        <span class="material-icons" style="font-size:14px;">sort_by_alpha</span> A-Z
+                    </button>
+                </div>
+            </div>
             <div class="grid-shots" id="gridShots"></div>
+            <p id="noResultsMsg" style="display:none; text-align:center; color:#8a99ad; padding:30px 20px;">Nessun bicchierino trovato 🔍</p>
         </section>
     </main>
+
+    <!-- FAB Button -->
+    <button class="fab-add-btn" id="btnOpenModal">
+        <span class="btn-icon-animated">🥃</span>
+    </button>
 
     <main class="main-content app-page" id="page-map">
         <h3>SHOTMAP</h3>
