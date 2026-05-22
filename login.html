@@ -2,13 +2,25 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Login ShotMate</title>
     
+    <!-- PWA: Manifest -->
     <link rel="manifest" href="./manifest.json">
+    
+    <!-- PWA: Theme e colori -->
     <meta name="theme-color" content="#000b1d">
+    
+    <!-- PWA: iOS Support -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ShotMate">
+    
+    <!-- PWA: Icona per iOS (usa URL diretto) -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluent/192/tequila-shot.png">
+    
+    <!-- PWA: Icona standard -->
+    <link rel="icon" type="image/png" sizes="192x192" href="https://img.icons8.com/fluent/192/tequila-shot.png">
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="style.css">
@@ -19,10 +31,14 @@
             align-items: center; 
             justify-content: center; 
             min-height: 100vh; 
+            min-height: -webkit-fill-available;
             background: #000b1d; 
             color: white; 
             text-align: center; 
             padding: 20px;
+            /* Gestisce il notch su iPhone */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
         .login-box { 
             background: #001533; 
@@ -52,6 +68,7 @@
             color: white;
             font-size: 14px;
             transition: all 0.3s ease;
+            box-sizing: border-box;
         }
         .form-group input:focus {
             border-color: #0077ff;
@@ -109,7 +126,6 @@
         }
         .divider:not(:empty)::before { margin-right: .25em; }
         .divider:not(:empty)::after { margin-left: .25em; }
-
         .btn-google { 
             background: white; 
             color: #333; 
@@ -143,16 +159,6 @@
             color: #2ecc71;
         }
     </style>
-
-        <script>
-        if ('serviceWorker' in navigator) {
-            // Aggiungi il punto e lo slash davanti a sw.js
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('Service Worker Registrato!'))
-                .catch(err => console.log('Errore Service Worker:', err));
-        }
-    </script>
-
 </head>
 
 <body>
@@ -195,6 +201,15 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script>
+        // Registrazione Service Worker PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('[PWA] Service Worker registrato, scope:', reg.scope))
+                    .catch(err => console.error('[PWA] Errore Service Worker:', err));
+            });
+        }
+
         const firebaseConfig = {
             apiKey: "AIzaSyBeE7yFqkAhLZH7A04AG2NqramZCKElU2A",
             authDomain: "shotmap-9cb58.firebaseapp.com",
@@ -204,6 +219,13 @@
             appId: "1:39326588472:web:6ec34b0c4ed7e4cfc110cd"
         };
         firebase.initializeApp(firebaseConfig);
+
+        // Se l'utente è già loggato, manda direttamente all'app
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                window.location.replace('./index.html');
+            }
+        });
 
         let isSignUpMode = false;
 
@@ -219,7 +241,7 @@
                 boxSubtitle.innerText = "REGISTRAZIONE NUOVO UTENTE";
                 boxSubtitle.style.color = "#2ecc71";
                 btnSubmit.innerText = "Crea il tuo Account";
-                btnSubmit.classList.add('signup-mode-btn'); 
+                btnSubmit.classList.add('signup-mode-btn');
                 emailInput.placeholder = "Scegli l'email per il tuo account";
                 passwordInput.placeholder = "Crea una password sicura";
                 toggleActionBox.innerHTML = 'Hai già un profilo ShotMate? <span onclick="toggleAuthMode()">Accedi subito</span>';
@@ -227,7 +249,7 @@
                 boxSubtitle.innerText = "ACCESSO PROFILO";
                 boxSubtitle.style.color = "#3498db";
                 btnSubmit.innerText = "Accedi al tuo Profilo";
-                btnSubmit.classList.remove('signup-mode-btn'); 
+                btnSubmit.classList.remove('signup-mode-btn');
                 emailInput.placeholder = "Inserisci la tua email per accedere";
                 passwordInput.placeholder = "Inserisci la tua password";
                 toggleActionBox.innerHTML = 'Non hai ancora un account? <span class="signup-toggle" onclick="toggleAuthMode()">Registrati qui</span>';
@@ -240,7 +262,9 @@
             const password = document.getElementById('password').value;
             const rememberMe = document.getElementById('rememberMe').checked;
 
-            const persistenceType = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+            const persistenceType = rememberMe
+                ? firebase.auth.Auth.Persistence.LOCAL
+                : firebase.auth.Auth.Persistence.SESSION;
 
             firebase.auth().setPersistence(persistenceType)
                 .then(() => {
@@ -251,28 +275,30 @@
                     }
                 })
                 .then(() => {
-                    window.location.href = 'index.html';
+                    window.location.replace('./index.html');
                 })
                 .catch(err => {
-                    let errorMessage = err.message;
-                    if (err.code === 'auth/wrong-password') errorMessage = 'La password inserita è errata.';
-                    if (err.code === 'auth/user-not-found') errorMessage = 'Nessun utente registrato con questa email.';
-                    if (err.code === 'auth/email-already-in-use') errorMessage = 'Questo indirizzo email è già associato a un account.';
-                    if (err.code === 'auth/weak-password') errorMessage = 'La password deve contenere almeno 6 caratteri.';
-                    if (err.code === 'auth/invalid-email') errorMessage = 'Il formato dell\'email non è valido.';
-                    alert("Attenzione: " + errorMessage);
+                    let msg = err.message;
+                    if (err.code === 'auth/wrong-password') msg = 'Password errata.';
+                    if (err.code === 'auth/user-not-found') msg = 'Nessun utente con questa email.';
+                    if (err.code === 'auth/email-already-in-use') msg = 'Email già associata a un account.';
+                    if (err.code === 'auth/weak-password') msg = 'La password deve avere almeno 6 caratteri.';
+                    if (err.code === 'auth/invalid-email') msg = 'Formato email non valido.';
+                    alert("Attenzione: " + msg);
                 });
         }
 
         document.getElementById('btnGoogle').addEventListener('click', () => {
             const rememberMe = document.getElementById('rememberMe').checked;
-            const persistenceType = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+            const persistenceType = rememberMe
+                ? firebase.auth.Auth.Persistence.LOCAL
+                : firebase.auth.Auth.Persistence.SESSION;
             const provider = new firebase.auth.GoogleAuthProvider();
-            
+
             firebase.auth().setPersistence(persistenceType)
                 .then(() => firebase.auth().signInWithPopup(provider))
-                .then(() => window.location.href = 'index.html')
-                .catch(err => alert("Errore di autenticazione con Google: " + err.message));
+                .then(() => window.location.replace('./index.html'))
+                .catch(err => alert("Errore Google: " + err.message));
         });
     </script>
 </body>

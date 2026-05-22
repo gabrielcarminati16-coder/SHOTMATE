@@ -1,7 +1,9 @@
 {
   "name": "ShotMate",
   "short_name": "ShotMate",
-  "start_url": "/SHOTMATE/login.html",
+  "description": "Traccia i tuoi bicchierini nel mondo",
+  "start_url": "./login.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#000411",
   "theme_color": "#000b1d",
@@ -11,13 +13,13 @@
       "src": "https://img.icons8.com/fluent/192/tequila-shot.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "https://img.icons8.com/fluent/512/tequila-shot.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }

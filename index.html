@@ -1,31 +1,42 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ShotMate</title>
     
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    
-    <link rel="stylesheet" href="style.css">
-    
+    <!-- PWA: Manifest -->
     <link rel="manifest" href="./manifest.json">
+    
+    <!-- PWA: Theme e colori -->
     <meta name="theme-color" content="#000b1d">
+    
+    <!-- PWA: iOS Support -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ShotMate">
+    
+    <!-- PWA: Icona per iOS -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluent/192/tequila-shot.png">
+    
+    <!-- PWA: Icona standard -->
+    <link rel="icon" type="image/png" sizes="192x192" href="https://img.icons8.com/fluent/192/tequila-shot.png">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="style.css">
 
     <script>
+        // Registrazione Service Worker PWA
         if ('serviceWorker' in navigator) {
-            // Il punto davanti allo slash indica la cartella corrente /SHOTMATE/
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('Service Worker Registrato con Successo!'))
-                .catch(err => console.log('Errore Service Worker:', err));
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('[PWA] Service Worker registrato, scope:', reg.scope))
+                    .catch(err => console.error('[PWA] Errore Service Worker:', err));
+            });
         }
     </script>
 </head>
-
-
 
 <body>
 
