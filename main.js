@@ -200,14 +200,22 @@ if (shotImageInput) {
             reader.onload = function (event) {
                 const img = new Image();
                 img.onload = function () {
+                    // Ridimensiona mantenendo le proporzioni (max 1000px sul lato lungo)
+                    const maxSize = 1000;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxSize || h > maxSize) {
+                        if (w >= h) { h = Math.round(h * maxSize / w); w = maxSize; }
+                        else { w = Math.round(w * maxSize / h); h = maxSize; }
+                    }
                     const canvas = document.createElement('canvas');
-                    const size = Math.min(img.width, img.height);
-                    canvas.width = size;
-                    canvas.height = size;
+                    canvas.width = w;
+                    canvas.height = h;
                     const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
-                    base64Image = canvas.toDataURL('image/jpeg', 0.6);
-                    imageUploadBox.innerHTML = `<img src="${base64Image}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">`;
+                    ctx.drawImage(img, 0, 0, w, h);
+                    base64Image = canvas.toDataURL('image/jpeg', 0.7);
+                    // Anteprima con object-fit: contain (foto intera visibile)
+                    imageUploadBox.innerHTML = `<img src="${base64Image}" style="width:100%; height:100%; object-fit:contain; border-radius:12px; background:#000b1d;">`;
                 };
                 img.src = event.target.result;
             };
@@ -216,14 +224,59 @@ if (shotImageInput) {
     });
 }
 
+// --- RICERCA E ORDINAMENTO ---
+let currentSearch = "";
+let currentSort = "newest";
+
+function getFilteredAndSortedShots() {
+    let shots = [...myShots];
+
+    // Filtra per ricerca
+    if (currentSearch.trim() !== "") {
+        const q = currentSearch.toLowerCase().trim();
+        shots = shots.filter(s =>
+            (s.city || "").toLowerCase().includes(q) ||
+            (s.country || "").toLowerCase().includes(q) ||
+            (s.notes || "").toLowerCase().includes(q)
+        );
+    }
+
+    // Ordina
+    if (currentSort === "newest") {
+        shots.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    } else if (currentSort === "oldest") {
+        shots.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    } else if (currentSort === "city") {
+        shots.sort((a, b) => (a.city || "").localeCompare(b.city || ""));
+    }
+
+    return shots;
+}
+
 function renderShots() {
     if (!gridShots) return;
     gridShots.innerHTML = "";
+
+    const badge = document.getElementById('shotsBadgeCount');
+    if (badge) badge.textContent = myShots.length;
+
+    const noResults = document.getElementById('noResultsMsg');
+    const shots = getFilteredAndSortedShots();
+
     if (myShots.length === 0) {
         gridShots.innerHTML = `<p style="grid-column: span 2; text-align: center; color: #8a99ad; padding: 40px 20px;">La tua collezione è vuota.<br>Aggiungi il tuo primo bicchierino!</p>`;
+        if (noResults) noResults.style.display = "none";
         return;
     }
-    myShots.forEach((shot) => {
+
+    if (shots.length === 0) {
+        if (noResults) noResults.style.display = "block";
+        return;
+    }
+
+    if (noResults) noResults.style.display = "none";
+
+    shots.forEach((shot) => {
         const card = document.createElement('div');
         card.className = 'shot-card';
         const imgHtml = shot.image
@@ -243,6 +296,36 @@ function renderShots() {
         gridShots.appendChild(card);
     });
 }
+
+// Setup barra ricerca e ordinamento
+const searchInput = document.getElementById('searchInput');
+const clearSearchBtn = document.getElementById('clearSearch');
+const sortBtns = document.querySelectorAll('.sort-btn');
+
+if (searchInput) {
+    searchInput.addEventListener('input', () => {
+        currentSearch = searchInput.value;
+        if (clearSearchBtn) clearSearchBtn.style.display = currentSearch ? 'flex' : 'none';
+        renderShots();
+    });
+}
+if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = "";
+        currentSearch = "";
+        clearSearchBtn.style.display = 'none';
+        searchInput.focus();
+        renderShots();
+    });
+}
+sortBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        sortBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentSort = btn.getAttribute('data-sort');
+        renderShots();
+    });
+});
 
 function formatDate(d) {
     if (!d || !d.includes("-")) return d;
@@ -305,7 +388,7 @@ window.editShot = function (id) {
         shotNotesInput.value = shot.notes || "";
         base64Image = shot.image || "";
         imageUploadBox.innerHTML = shot.image
-            ? `<img src="${shot.image}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">`
+            ? `<img src="${shot.image}" style="width:100%; height:100%; object-fit:contain; border-radius:12px; background:#000b1d;">`
             : `<span class="material-icons upload-icon">add_a_photo</span>`;
         shotModal.classList.add('open');
     }
@@ -357,7 +440,7 @@ function updateStats() {
     const badgeRankName = document.getElementById('badgeRankName');
     const badgeNextRank = document.getElementById('badgeNextRank');
 
-    if (badgeMedal && badgeRankName && badgeNextRank) {
+if (badgeMedal && badgeRankName && badgeNextRank) {
         if (totalShots >= 121) {
             badgeMedal.innerText = "🥇"; badgeRankName.innerText = "Medaglia d'Oro"; badgeNextRank.innerText = "Sei il Re indiscusso dei banconi! 👑";
         } else if (totalShots >= 81) {
