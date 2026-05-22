@@ -1,4 +1,4 @@
-// --- 1. CONFIGURAZIONE E CONFIGURAZIONE GLOBALE FIREBASE ---
+// --- 1. CONFIGURAZIONE GLOBALE ---
 const auth = firebase.auth();
 
 let myShots = [];
@@ -7,7 +7,7 @@ let myProfile = { username: "Tu (ShotMate)", friendCode: "" };
 let map = null;
 let base64Image = "";
 let globalRegioniVisitate = new Set();
-let friendsListeners = {}; // Memorizza i listener attivi degli amici per evitare duplicati
+let friendsListeners = {};
 
 const italiaRegioniDatabase = {
     'abruzzo': ['aquila', 'l\'aquila', 'pescara', 'chieti', 'teramo', 'sulmona', 'vasto', 'montesilvano'],
@@ -32,10 +32,10 @@ const italiaRegioniDatabase = {
     'veneto': ['venezia', 'verona', 'padova', 'vicenza', 'treviso', 'rovigo', 'belluno', 'chioggia', 'jesolo', 'cortina']
 };
 
-// --- 2. GESTIONE AUTENTICAZIONE IN TEMPO REALE ---
+// --- 2. AUTENTICAZIONE ---
 auth.onAuthStateChanged((user) => {
     if (!user) {
-        window.location.href = 'login.html';
+        window.location.replace('./login.html');
     } else {
         setupRealtimeSync(user.uid);
     }
@@ -44,16 +44,18 @@ auth.onAuthStateChanged((user) => {
 function generateFriendCode() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let code = "SM-";
-    for(let i=0; i<4; i++) { code += chars.charAt(Math.floor(Math.random() * chars.length)); }
+    for (let i = 0; i < 4; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
     return code;
 }
 
 function setupRealtimeSync(uid) {
-    // Sincronizzazione Profilo Personale
+    // Profilo personale
     db.collection("users").doc(uid).onSnapshot((doc) => {
         if (doc.exists) {
             myProfile = doc.data();
-            if(!myProfile.friendCode) {
+            if (!myProfile.friendCode) {
                 myProfile.friendCode = generateFriendCode();
                 db.collection("users").doc(uid).update({ friendCode: myProfile.friendCode });
             }
@@ -65,41 +67,41 @@ function setupRealtimeSync(uid) {
         if (display) display.innerText = myProfile.friendCode;
     }, err => console.error("Errore profilo:", err));
 
-    // Sincronizzazione Bicchierini Personali
+    // Bicchierini personali
     db.collection("users").doc(uid).collection("shots").onSnapshot((snapshot) => {
         myShots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderShots();
         updateStats();
-        if (document.getElementById('page-map').classList.contains('active-page')) { initOrRefreshMap(); }
-        renderLeaderboard(); // Aggiorna anche la classifica quando cambiano i miei shots
+        if (document.getElementById('page-map').classList.contains('active-page')) {
+            initOrRefreshMap();
+        }
+        renderLeaderboard();
     }, err => console.error("Errore bicchierini:", err));
 
-    // Sincronizzazione Lista Amici Reali Aggiunti
+    // Lista amici
     db.collection("users").doc(uid).collection("realFriends").onSnapshot((snapshot) => {
         myRealFriends = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // Per ogni amico aggiunto, creiamo un ascoltatore in tempo reale per vedere i SUOI bicchierini reali
+
         myRealFriends.forEach(friend => {
             if (!friendsListeners[friend.uid]) {
-                // Ascolta i cambiamenti del profilo dell'amico (se cambia nome)
+                // Ascolta profilo amico
                 db.collection("users").doc(friend.uid).onSnapshot(friendDoc => {
                     if (friendDoc.exists) {
-                        const fData = friendDoc.data();
-                        friend.name = fData.username || friend.name;
+                        friend.name = friendDoc.data().username || friend.name;
                         renderLeaderboard();
                     }
                 });
 
-                // Ascolta la sotto-collezione shots dell'amico per calcolare bicchierini reali e ultima città
+                // Ascolta shots amico
                 friendsListeners[friend.uid] = db.collection("users").doc(friend.uid).collection("shots")
                     .onSnapshot(shotsSnap => {
                         const friendShotsList = shotsSnap.docs.map(d => d.data());
                         friend.shotsCount = friendShotsList.length;
-                        
-                        // Ordina i brindisi per data per scoprire l'ultima città
                         if (friendShotsList.length > 0) {
-                            const validShots = friendShotsList.filter(s => s.date).sort((a,b) => b.date.localeCompare(a.date));
-                            friend.lastCity = validShots.length > 0 ? (validShots[0].city || "Qualche parte") : (friendShotsList[0].city || "Qualche parte");
+                            const validShots = friendShotsList.filter(s => s.date).sort((a, b) => b.date.localeCompare(a.date));
+                            friend.lastCity = validShots.length > 0
+                                ? (validShots[0].city || "Qualche parte")
+                                : (friendShotsList[0].city || "Qualche parte");
                         } else {
                             friend.lastCity = "Nessuno";
                         }
@@ -111,7 +113,7 @@ function setupRealtimeSync(uid) {
     }, err => console.error("Errore amici:", err));
 }
 
-// --- 3. NAVBAR INFERIORE E NAVIGAZIONE TRA LE PAGINE ---
+// --- 3. NAVIGAZIONE ---
 const navItems = document.querySelectorAll('.bottom-nav .nav-item');
 const appPages = document.querySelectorAll('.app-page');
 
@@ -130,7 +132,7 @@ navItems.forEach(item => {
     });
 });
 
-// --- 4. GESTIONE MODAL PROFILO ---
+// --- 4. MODAL PROFILO ---
 const profileModal = document.getElementById('profileModal');
 const btnOpenProfileModal = document.getElementById('btnOpenProfileModal');
 const btnSaveProfile = document.getElementById('btnSaveProfile');
@@ -149,10 +151,10 @@ if (btnOpenProfileModal) {
 if (btnSaveProfile) {
     btnSaveProfile.addEventListener('click', async () => {
         const newName = profileUsernameInput.value.trim();
-        if(newName !== "") {
+        if (newName !== "") {
             myProfile.username = newName;
             const user = auth.currentUser;
-            if(user) { await db.collection("users").doc(user.uid).update({ username: newName }); }
+            if (user) await db.collection("users").doc(user.uid).update({ username: newName });
         }
         profileModal.classList.remove('open');
     });
@@ -162,7 +164,6 @@ if (btnLogout) {
     btnLogout.addEventListener('click', async () => {
         if (confirm("Sei sicuro di voler uscire da ShotMate?")) {
             try {
-                // Rimuoviamo i listener attivi prima di disconnettere
                 Object.values(friendsListeners).forEach(unsub => unsub());
                 friendsListeners = {};
                 await auth.signOut();
@@ -173,7 +174,7 @@ if (btnLogout) {
     });
 }
 
-// --- 5. GESTIONE COLLEZIONE SHOTS (INSERIMENTO / MODIFICA) ---
+// --- 5. SHOTS (INSERIMENTO / MODIFICA) ---
 const shotModal = document.getElementById('shotModal');
 const btnOpenModal = document.getElementById('btnOpenModal');
 const btnCloseModal = document.getElementById('btnCloseModal');
@@ -192,16 +193,17 @@ if (imageUploadBox) {
 }
 
 if (shotImageInput) {
-    shotImageInput.addEventListener('change', function(e) {
+    shotImageInput.addEventListener('change', function (e) {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = function(event) {
+            reader.onload = function (event) {
                 const img = new Image();
-                img.onload = function() {
+                img.onload = function () {
                     const canvas = document.createElement('canvas');
                     const size = Math.min(img.width, img.height);
-                    canvas.width = size; canvas.height = size;
+                    canvas.width = size;
+                    canvas.height = size;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
                     base64Image = canvas.toDataURL('image/jpeg', 0.6);
@@ -218,13 +220,15 @@ function renderShots() {
     if (!gridShots) return;
     gridShots.innerHTML = "";
     if (myShots.length === 0) {
-        gridShots.innerHTML = `<p style="grid-column: span 2; text-align: center; color: #8a99ad; padding: 40px 20px;">La tua collezione è vuota.<br>Aggiungi il tuo premier bicchierino!</p>`;
+        gridShots.innerHTML = `<p style="grid-column: span 2; text-align: center; color: #8a99ad; padding: 40px 20px;">La tua collezione è vuota.<br>Aggiungi il tuo primo bicchierino!</p>`;
         return;
     }
     myShots.forEach((shot) => {
         const card = document.createElement('div');
         card.className = 'shot-card';
-        const imgHtml = shot.image ? `<img src="${shot.image}">` : `<span class="material-icons" style="color:#0077ff">local_bar</span>`;
+        const imgHtml = shot.image
+            ? `<img src="${shot.image}">`
+            : `<span class="material-icons" style="color:#0077ff">local_bar</span>`;
         card.innerHTML = `
             <div class="shot-img-container">${imgHtml}</div>
             <h4>${shot.city || "Qualche parte"}</h4>
@@ -240,18 +244,24 @@ function renderShots() {
     });
 }
 
-function formatDate(d) { 
-    if(!d || !d.includes("-")) return d;
-    const p = d.split("-"); 
-    return `${p[2]}/${p[1]}/${p[0]}`; 
+function formatDate(d) {
+    if (!d || !d.includes("-")) return d;
+    const p = d.split("-");
+    return `${p[2]}/${p[1]}/${p[0]}`;
 }
 
 if (btnOpenModal) {
     btnOpenModal.addEventListener('click', () => {
         document.getElementById('modalTitle').innerText = "Nuovo Bicchierino";
-        shotIdInput.value = ""; shotCityInput.value = ""; shotCountryInput.value = ""; shotDateInput.value = ""; shotNotesInput.value = ""; shotImageInput.value = "";
+        shotIdInput.value = "";
+        shotCityInput.value = "";
+        shotCountryInput.value = "";
+        shotDateInput.value = "";
+        shotNotesInput.value = "";
+        shotImageInput.value = "";
         imageUploadBox.innerHTML = `<span class="material-icons upload-icon">add_a_photo</span><span class="upload-text">AGGIUNGI IMMAGINE</span>`;
-        base64Image = ""; shotModal.classList.add('open');
+        base64Image = "";
+        shotModal.classList.add('open');
     });
 }
 
@@ -284,24 +294,31 @@ if (btnSaveShot) {
     });
 }
 
-window.editShot = function(id) {
+window.editShot = function (id) {
     const shot = myShots.find(s => s.id === id);
     if (shot) {
         document.getElementById('modalTitle').innerText = "Modifica Bicchierino";
-        shotIdInput.value = shot.id; shotCityInput.value = shot.city || ""; shotCountryInput.value = shot.country || ""; shotDateInput.value = shot.date || ""; shotNotesInput.value = shot.notes || ""; base64Image = shot.image || "";
-        imageUploadBox.innerHTML = shot.image ? `<img src="${shot.image}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">` : `<span class="material-icons upload-icon">add_a_photo</span>`;
+        shotIdInput.value = shot.id;
+        shotCityInput.value = shot.city || "";
+        shotCountryInput.value = shot.country || "";
+        shotDateInput.value = shot.date || "";
+        shotNotesInput.value = shot.notes || "";
+        base64Image = shot.image || "";
+        imageUploadBox.innerHTML = shot.image
+            ? `<img src="${shot.image}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">`
+            : `<span class="material-icons upload-icon">add_a_photo</span>`;
         shotModal.classList.add('open');
     }
 };
 
-window.deleteShot = async function(id) {
+window.deleteShot = async function (id) {
     const user = auth.currentUser;
     if (user && confirm("Vuoi eliminare questo bicchierino?")) {
         await db.collection("users").doc(user.uid).collection("shots").doc(id).delete();
     }
 };
 
-// --- 6. STATISTICHE E CHECKLIST REGIONI ---
+// --- 6. STATISTICHE E REGIONI ---
 const regionsModal = document.getElementById('regionsModal');
 const cardRegionsBtn = document.getElementById('cardRegionsBtn');
 const btnCloseRegionsModal = document.getElementById('btnCloseRegionsModal');
@@ -314,7 +331,7 @@ function updateStats() {
 
     const cities = [...new Set(myShots.map(s => (s.city || "").toLowerCase().trim()).filter(c => c !== ""))];
     const countries = [...new Set(myShots.map(s => (s.country || "").toLowerCase().trim()).filter(c => c !== ""))];
-    
+
     const citiesDisplay = document.getElementById('stat-cities');
     const countriesDisplay = document.getElementById('stat-countries');
     if (citiesDisplay) citiesDisplay.innerText = cities.length;
@@ -332,7 +349,7 @@ function updateStats() {
             }
         }
     });
-    
+
     const regionsDisplay = document.getElementById('stat-regions');
     if (regionsDisplay) regionsDisplay.innerText = `${globalRegioniVisitate.size}/20`;
 
@@ -370,11 +387,12 @@ if (cardRegionsBtn) {
         regionsModal.classList.add('open');
     });
 }
+
 if (btnCloseRegionsModal) {
-    btnCloseRegionsModal.addEventListener('click', () => { regionsModal.classList.remove('open'); });
+    btnCloseRegionsModal.addEventListener('click', () => regionsModal.classList.remove('open'));
 }
 
-// --- 7. CLASSIFICA AMICI AUTOMATICA E REALE ---
+// --- 7. CLASSIFICA AMICI ---
 const friendModal = document.getElementById('friendModal');
 const btnOpenFriendModal = document.getElementById('btnOpenFriendModal');
 const btnCloseFriendModal = document.getElementById('btnCloseFriendModal');
@@ -392,18 +410,18 @@ function getBadgeEmoji(count) {
 function renderLeaderboard() {
     if (!friendsLeaderboard) return;
     friendsLeaderboard.innerHTML = "";
-    
-    // Costruisci l'oggetto profilo per te stesso
+
     const userProfile = {
         uid: "me",
         name: myProfile.username || "Tu (ShotMate)",
         shotsCount: myShots.length,
-        lastCity: myShots.length > 0 ? (myShots.filter(s => s.date).sort((a,b) => b.date.localeCompare(a.date))[0]?.city || myShots[0].city || "Nessuna") : "Nessuna",
+        lastCity: myShots.length > 0
+            ? (myShots.filter(s => s.date).sort((a, b) => b.date.localeCompare(a.date))[0]?.city || myShots[0].city || "Nessuna")
+            : "Nessuna",
         isMe: true,
         code: myProfile.friendCode
     };
 
-    // Unisci te stesso e gli amici salvati, ordinando per numero di bicchierini decrescente
     let fullList = [...myRealFriends, userProfile];
     fullList.sort((a, b) => (b.shotsCount || 0) - (a.shotsCount || 0));
 
@@ -437,20 +455,19 @@ if (btnOpenFriendModal) {
     });
 }
 if (btnCloseFriendModal) {
-    btnCloseFriendModal.addEventListener('click', () => { friendModal.classList.remove('open'); });
+    btnCloseFriendModal.addEventListener('click', () => friendModal.classList.remove('open'));
 }
 
 if (btnSaveFriend) {
     btnSaveFriend.addEventListener('click', async () => {
         const code = friendFriendCodeInput.value.trim().toUpperCase();
         const user = auth.currentUser;
-        
+
         if (!user) return;
         if (code === "") { alert("Inserisci il Codice Amico!"); return; }
         if (code === myProfile.friendCode) { alert("Non puoi aggiungere il tuo stesso codice amico!"); return; }
 
         try {
-            // Cerca su Firestore l'utente che possiede il codice inserito
             const querySnapshot = await db.collection("users").where("friendCode", "==", code).get();
 
             if (querySnapshot.empty) {
@@ -462,7 +479,6 @@ if (btnSaveFriend) {
             const friendUid = friendDoc.id;
             const friendData = friendDoc.data();
 
-            // Evita duplicati
             const alreadyAdded = myRealFriends.some(f => f.code === code);
             if (alreadyAdded) {
                 alert("Hai già aggiunto questo amico!");
@@ -470,7 +486,6 @@ if (btnSaveFriend) {
                 return;
             }
 
-            // Aggiungi il record nel tuo sotto-elenco 'realFriends'
             await db.collection("users").doc(user.uid).collection("realFriends").doc(friendUid).set({
                 uid: friendUid,
                 name: friendData.username || "Amico",
@@ -487,13 +502,13 @@ if (btnSaveFriend) {
     });
 }
 
-// --- 8. GLOBAL SHOTMAP (LEAFLET MAP) ---
+// --- 8. MAPPA (LEAFLET) ---
 function initOrRefreshMap() {
     if (!map) {
         map = L.map('map').setView([42.0, 12.5], 4);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
     }
-    setTimeout(() => { if(map) map.invalidateSize(); }, 200);
+    setTimeout(() => { if (map) map.invalidateSize(); }, 200);
     map.eachLayer((layer) => { if (layer instanceof L.Marker) map.removeLayer(layer); });
 
     myShots.forEach(shot => {
@@ -502,26 +517,41 @@ function initOrRefreshMap() {
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.length > 0) {
-                        const lat = data[0].lat; const lon = data[0].lon;
+                        const lat = data[0].lat;
+                        const lon = data[0].lon;
                         const goldDotIcon = L.divIcon({
                             className: 'gold-dot-marker',
                             html: '<div style="width:10px; height:10px; background-color:#f1c40f; border:1.5px solid #00112c; border-radius:50%; box-shadow:0 0 8px rgba(241,196,15,0.7);"></div>',
-                            iconSize: [10, 10], iconAnchor: [5, 5],
+                            iconSize: [10, 10],
+                            iconAnchor: [5, 5],
                         });
-                        const shotImgPreview = shot.image ? `<div style="width:100%; height:90px; background-color:#000b1d; border-radius:6px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; overflow:hidden;"><img src="${shot.image}" style="width:100%; height:100%; object-fit:contain;"></div>` : '';
+                        const shotImgPreview = shot.image
+                            ? `<div style="width:100%; height:90px; background-color:#000b1d; border-radius:6px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; overflow:hidden;"><img src="${shot.image}" style="width:100%; height:100%; object-fit:contain;"></div>`
+                            : '';
                         L.marker([lat, lon], { icon: goldDotIcon }).addTo(map)
-                            .bindPopup(`<div style="text-align:center; font-family:sans-serif;"><div style="color:#fff">${shotImgPreview}<b style="color:#ffffff; font-size:13px; text-transform:uppercase; display:block; margin-bottom:1px;">${shot.city}</b><span style="color:#8a99ad; font-size:11px; display:block; margin-bottom:8px;">${shot.country || ''}</span><button onclick="editShotFromMap('${shot.id}')" style="background:#0077ff; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer; width:100%;">Modifica</button></div></div>`, { minWidth: 120, maxWidth: 140, closeButton: false });
+                            .bindPopup(`
+                                <div style="text-align:center; font-family:sans-serif;">
+                                    ${shotImgPreview}
+                                    <b style="color:#ffffff; font-size:13px; text-transform:uppercase; display:block; margin-bottom:1px;">${shot.city}</b>
+                                    <span style="color:#8a99ad; font-size:11px; display:block; margin-bottom:8px;">${shot.country || ''}</span>
+                                    <button onclick="editShotFromMap('${shot.id}')" style="background:#0077ff; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer; width:100%;">Modifica</button>
+                                </div>
+                            `, { minWidth: 120, maxWidth: 140, closeButton: false });
                     }
-                }).catch(err => console.error("Errore Geocoding:", err));
+                })
+                .catch(err => console.error("Errore Geocoding:", err));
         }
     });
 }
 
-window.editShotFromMap = function(id) {
-    if(map) map.closePopup();
+window.editShotFromMap = function (id) {
+    if (map) map.closePopup();
     navItems.forEach(nav => nav.classList.remove('active'));
     const homeNav = document.querySelector('.bottom-nav .nav-item[data-page="page-home"]');
     if (homeNav) homeNav.classList.add('active');
-    appPages.forEach(page => { page.classList.remove('active-page'); if (page.id === 'page-home') page.classList.add('active-page'); });
+    appPages.forEach(page => {
+        page.classList.remove('active-page');
+        if (page.id === 'page-home') page.classList.add('active-page');
+    });
     window.editShot(id);
 };
