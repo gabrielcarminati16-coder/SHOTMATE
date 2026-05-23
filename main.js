@@ -689,6 +689,9 @@ function initOrRefreshMap() {
     setTimeout(() => { if (map) map.invalidateSize(); }, 200);
     map.eachLayer((layer) => { if (layer instanceof L.Marker) map.removeLayer(layer); });
 
+    // Messaggio di caricamento se ci sono shot da geocodificare
+    const mapLoadingEl = document.getElementById('mapLoadingMsg');
+
     // Separa shot già in cache da quelli da geocodificare
     const toFetch = [];
     myShots.forEach(shot => {
@@ -701,23 +704,43 @@ function initOrRefreshMap() {
         }
     });
 
+    if (toFetch.length > 0 && mapLoadingEl) {
+        mapLoadingEl.style.display = 'block';
+        mapLoadingEl.textContent = `Caricamento marker... 0/${toFetch.length}`;
+    }
+
     // Geocodifica uno alla volta con 1.1s di delay (rispetta rate limit Nominatim: max 1 req/s)
     toFetch.forEach(({ shot, key }, i) => {
         setTimeout(() => {
+            if (mapLoadingEl) mapLoadingEl.textContent = `Caricamento marker... ${i+1}/${toFetch.length}`;
             const query = encodeURIComponent(shot.city + ',' + (shot.country || ''));
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`)
-                .then(res => res.json())
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
+                    headers: { 'Accept': 'application/json', 'Accept-Language': 'it,en' }
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
                 .then(data => {
                     if (data && data.length > 0) {
                         const lat = parseFloat(data[0].lat);
                         const lon = parseFloat(data[0].lon);
                         geocodeCache[key] = [lat, lon];
                         addMarkerToMap(shot, lat, lon);
+                    } else {
+                        console.warn('Nessun risultato per:', shot.city, shot.country);
                     }
                 })
-                .catch(err => console.error('Errore Geocoding:', err));
+                .catch(err => console.error('Errore Geocoding per', shot.city, ':', err));
+            // Nascondi messaggio all'ultimo
+            if (i === toFetch.length - 1 && mapLoadingEl) {
+                setTimeout(() => { mapLoadingEl.style.display = 'none'; }, 800);
+            }
         }, i * 1100);
     });
+
+    // Se non c'è niente da fetchare, nascondi subito
+    if (toFetch.length === 0 && mapLoadingEl) mapLoadingEl.style.display = 'none';
 }
 
 window.editShotFromMap = function (id) {
