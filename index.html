@@ -215,14 +215,27 @@
         </section>
     </main>
 
-    <!-- FAB Button -->
-    <button class="fab-add-btn" id="btnOpenModal">
-        <span class="btn-icon-animated">🥃</span>
-    </button>
+    <!-- FAB Buttons -->
+    <div class="fab-group">
+        <button class="fab-add-btn fab-multi" id="btnOpenMultiModal" title="Inserimento multiplo">
+            <span class="material-icons" style="font-size:22px;color:white;">add_circle</span>
+        </button>
+        <button class="fab-add-btn" id="btnOpenModal">
+            <span class="btn-icon-animated">🥃</span>
+        </button>
+    </div>
 
     <main class="main-content app-page" id="page-map">
-        <h3>SHOTMAP</h3>
-        <p style="color: #8a99ad; font-size: 13px; margin-bottom: 15px;">I tuoi brindisi nel mondo</p>
+        <div class="map-page-header">
+            <div>
+                <h3>SHOTMAP</h3>
+                <p style="color: #8a99ad; font-size: 13px;">I tuoi brindisi nel mondo</p>
+            </div>
+            <button class="btn-map-fullscreen" id="btnMapFullscreen">
+                <span class="material-icons" id="mapFullscreenIcon">fullscreen</span>
+            </button>
+        </div>
+        <div id="mapLoadingMsg" style="display:none; text-align:center; color:#f1c40f; font-size:13px; font-weight:600; padding: 6px 0 10px;">⏳ Caricamento marker...</div>
         <div id="map"></div>
     </main>
 
@@ -362,6 +375,22 @@
         </div>
     </div>
 
+    <!-- Modale Inserimento Multiplo -->
+    <div class="modal-overlay" id="multiModal">
+        <div class="modal-content" style="max-height:85vh; overflow-y:auto;">
+            <h3>Inserimento Multiplo</h3>
+            <p style="color:#8a99ad; font-size:13px; margin-bottom:16px;">Compila le righe e salva tutto insieme</p>
+            <div id="multiRowsContainer"></div>
+            <button class="btn-add-row" id="btnAddRow">
+                <span class="material-icons" style="font-size:18px;">add</span> Aggiungi riga
+            </button>
+            <div class="modal-actions" style="margin-top:16px;">
+                <button class="btn-secondary" id="btnCloseMultiModal">Annulla</button>
+                <button class="btn-primary" id="btnSaveMulti">Salva tutti</button>
+            </div>
+        </div>
+    </div>
+
     <nav class="bottom-nav">
         <div class="nav-item active" data-page="page-home">
             <span class="material-icons">home</span>
@@ -460,6 +489,11 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="main.js"></script>
+    <!-- Pulsante fullscreen overlay -->
+    <button class="btn-map-fullscreen-overlay" id="btnMapExitFullscreen">
+        <span class="material-icons">fullscreen_exit</span>
+    </button>
+
     <!-- Lightbox Foto -->
     <div class="photo-lightbox" id="photoLightbox" onclick="closePhotoLightbox()">
         <button class="lightbox-close" onclick="closePhotoLightbox()">
