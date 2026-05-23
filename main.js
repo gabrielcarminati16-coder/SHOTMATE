@@ -429,6 +429,21 @@ if (btnSaveShot) {
 
         const shotPayload = { city, country, date, notes, image: base64Image };
 
+        // Geocodifica al salvataggio e salva lat/lon su Firestore
+        if (city) {
+            try {
+                const q = encodeURIComponent(city + ',' + (country || ''));
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`, {
+                    headers: { 'Accept': 'application/json', 'Accept-Language': 'it,en' }
+                });
+                const geo = await res.json();
+                if (geo && geo.length > 0) {
+                    shotPayload.lat = parseFloat(geo[0].lat);
+                    shotPayload.lon = parseFloat(geo[0].lon);
+                }
+            } catch (e) { console.warn('Geocoding al salvataggio fallito:', e); }
+        }
+
         if (id) {
             if (!base64Image) {
                 const oldShot = myShots.find(s => s.id === id);
@@ -657,18 +672,6 @@ if (btnSaveFriend) {
 }
 
 // --- 8. MAPPA (LEAFLET) ---
-// --- CACHE COORDINATE (persistente in localStorage) ---
-const GEOCACHE_KEY = 'shotmate_geocache';
-
-function loadGeoCache() {
-    try { return JSON.parse(localStorage.getItem(GEOCACHE_KEY) || '{}'); }
-    catch (e) { return {}; }
-}
-function saveGeoCache(cache) {
-    try { localStorage.setItem(GEOCACHE_KEY, JSON.stringify(cache)); }
-    catch (e) { console.warn('localStorage pieno, cache non salvata'); }
-}
-
 function addMarkerToMap(shot, lat, lon) {
     const goldDotIcon = L.divIcon({
         className: 'gold-dot-marker',
@@ -690,7 +693,29 @@ function addMarkerToMap(shot, lat, lon) {
         `, { minWidth: 120, maxWidth: 140, closeButton: false });
 }
 
-function initOrRefreshMap() {
+async function geocodeAndSave(uid, shot) {
+    // Geocodifica una città e salva le coordinate su Firestore
+    try {
+        const q = encodeURIComponent(shot.city + ',' + (shot.country || ''));
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`, {
+            headers: { 'Accept': 'application/json', 'Accept-Language': 'it,en' }
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
+            // Salva le coordinate su Firestore per sempre
+            await db.collection("users").doc(uid).collection("shots").doc(shot.id).update({ lat, lon });
+            return { lat, lon };
+        }
+    } catch (e) {
+        console.warn('Geocoding fallito per', shot.city, ':', e);
+    }
+    return null;
+}
+
+async function initOrRefreshMap() {
     if (!map) {
         map = L.map('map').setView([42.0, 12.5], 4);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
@@ -698,54 +723,38 @@ function initOrRefreshMap() {
     setTimeout(() => { if (map) map.invalidateSize(); }, 200);
     map.eachLayer((layer) => { if (layer instanceof L.Marker) map.removeLayer(layer); });
 
-    const geoCache = loadGeoCache();
-    const toFetch = [];
+    const user = auth.currentUser;
+    if (!user) return;
 
-    // Aggiungi subito i marker già in cache (istantanei)
-    myShots.forEach(shot => {
-        if (!shot.city) return;
-        const key = (shot.city + ',' + (shot.country || '')).toLowerCase().trim();
-        if (geoCache[key]) {
-            addMarkerToMap(shot, geoCache[key][0], geoCache[key][1]);
-        } else {
-            toFetch.push({ shot, key });
-        }
-    });
-
-    // Mostra indicatore solo se ci sono città da geocodificare
     const mapLoadingEl = document.getElementById('mapLoadingMsg');
-    if (toFetch.length > 0 && mapLoadingEl) {
-        mapLoadingEl.style.display = 'block';
-        mapLoadingEl.textContent = `⏳ Caricamento marker... 0/${toFetch.length}`;
+
+    // Separa shot con coordinate già salvate da quelli che ne hanno bisogno
+    const withCoords = myShots.filter(s => s.city && s.lat && s.lon);
+    const needsGeo = myShots.filter(s => s.city && (!s.lat || !s.lon));
+
+    // Aggiungi subito tutti i marker con coordinate già note
+    withCoords.forEach(shot => addMarkerToMap(shot, shot.lat, shot.lon));
+
+    if (needsGeo.length === 0) {
+        if (mapLoadingEl) mapLoadingEl.style.display = 'none';
+        return;
     }
 
-    // Geocodifica le nuove città una alla volta (rate limit Nominatim: 1 req/s)
-    toFetch.forEach(({ shot, key }, i) => {
-        setTimeout(() => {
-            if (mapLoadingEl) mapLoadingEl.textContent = `⏳ Caricamento marker... ${i + 1}/${toFetch.length}`;
-            const query = encodeURIComponent(shot.city + ',' + (shot.country || ''));
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
-                headers: { 'Accept': 'application/json', 'Accept-Language': 'it,en' }
-            })
-                .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-                .then(data => {
-                    if (data && data.length > 0) {
-                        const lat = parseFloat(data[0].lat);
-                        const lon = parseFloat(data[0].lon);
-                        // Salva in cache persistente
-                        geoCache[key] = [lat, lon];
-                        saveGeoCache(geoCache);
-                        addMarkerToMap(shot, lat, lon);
-                    }
-                    if (i === toFetch.length - 1 && mapLoadingEl) {
-                        setTimeout(() => { mapLoadingEl.style.display = 'none'; }, 800);
-                    }
-                })
-                .catch(err => console.error('Geocoding fallito per', shot.city, ':', err));
-        }, i * 1100);
-    });
+    // Geocodifica i vecchi bicchierini senza coordinate, uno alla volta
+    if (mapLoadingEl) {
+        mapLoadingEl.style.display = 'block';
+        mapLoadingEl.textContent = `⏳ Aggiornamento coordinate... 0/${needsGeo.length}`;
+    }
 
-    if (toFetch.length === 0 && mapLoadingEl) mapLoadingEl.style.display = 'none';
+    for (let i = 0; i < needsGeo.length; i++) {
+        const shot = needsGeo[i];
+        if (mapLoadingEl) mapLoadingEl.textContent = `⏳ Aggiornamento coordinate... ${i + 1}/${needsGeo.length}`;
+        const coords = await geocodeAndSave(user.uid, shot);
+        if (coords) addMarkerToMap(shot, coords.lat, coords.lon);
+        if (i < needsGeo.length - 1) await new Promise(r => setTimeout(r, 1200));
+    }
+
+    if (mapLoadingEl) setTimeout(() => { mapLoadingEl.style.display = 'none'; }, 800);
 }
 
 window.editShotFromMap = function (id) {
