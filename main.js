@@ -80,6 +80,43 @@ function setupRealtimeSync(uid) {
         renderLeaderboard();
     }, err => console.error("Errore bicchierini:", err));
 
+    // Listener reazioni sui miei shot
+    let prevMyShots = {}; // { shotId: { emoji: count } }
+    db.collection("users").doc(uid).collection("shots").onSnapshot((snapshot) => {
+        snapshot.docs.forEach(doc => {
+            const shot = doc.data();
+            const shotId = doc.id;
+            const reactions = shot.reactions || {};
+
+            if (prevMyShots[shotId] !== undefined) {
+                // Confronta con stato precedente
+                ["🥃","🔥","😍","👑"].forEach(emoji => {
+                    const prevCount = prevMyShots[shotId][emoji] || 0;
+                    const newCount = (reactions[emoji] || []).length;
+                    if (newCount > prevCount) {
+                        const notif = {
+                            id: Date.now() + Math.random(),
+                            type: "reaction",
+                            emoji,
+                            city: shot.city || "un bicchierino",
+                            time: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+                            read: false
+                        };
+                        notifications.unshift(notif);
+                        if (notifications.length > 30) notifications.pop();
+                        updateNotifBadge();
+                    }
+                });
+            }
+
+            // Aggiorna stato precedente
+            prevMyShots[shotId] = {};
+            ["🥃","🔥","😍","👑"].forEach(emoji => {
+                prevMyShots[shotId][emoji] = (reactions[emoji] || []).length;
+            });
+        });
+    }, err => console.error("Errore listener reazioni:", err));
+
     // Lista amici
     db.collection("users").doc(uid).collection("realFriends").onSnapshot((snapshot) => {
         myRealFriends = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -861,13 +898,23 @@ function renderNotifications() {
     notifications.forEach(n => {
         const item = document.createElement('div');
         item.style.cssText = "display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #0a1f3d;";
-        item.innerHTML = `
-            <span class="material-icons" style="font-size:32px; color:#5d6d7e; flex-shrink:0;">account_circle</span>
-            <div style="flex:1;">
-                <p style="margin:0; font-size:14px; color:#e8f0ff;"><b>${n.friendName}</b> ha aggiunto un bicchierino da <b>${n.city}</b> 🥃</p>
-                <p style="margin:2px 0 0; font-size:11px; color:#5d6d7e;">${n.time}</p>
-            </div>
-        `;
+        if (n.type === "reaction") {
+            item.innerHTML = `
+                <span style="font-size:28px; flex-shrink:0;">${n.emoji}</span>
+                <div style="flex:1;">
+                    <p style="margin:0; font-size:14px; color:#e8f0ff;">Qualcuno ha reagito con <b>${n.emoji}</b> al tuo bicchierino da <b>${n.city}</b>!</p>
+                    <p style="margin:2px 0 0; font-size:11px; color:#5d6d7e;">${n.time}</p>
+                </div>
+            `;
+        } else {
+            item.innerHTML = `
+                <span class="material-icons" style="font-size:32px; color:#5d6d7e; flex-shrink:0;">account_circle</span>
+                <div style="flex:1;">
+                    <p style="margin:0; font-size:14px; color:#e8f0ff;"><b>${n.friendName}</b> ha aggiunto un bicchierino da <b>${n.city}</b> 🥃</p>
+                    <p style="margin:2px 0 0; font-size:11px; color:#5d6d7e;">${n.time}</p>
+                </div>
+            `;
+        }
         notificationsList.appendChild(item);
     });
 }
