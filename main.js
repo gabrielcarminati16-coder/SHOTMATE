@@ -930,3 +930,188 @@ if (btnOpenNotifications) {
 if (btnCloseNotifications) {
     btnCloseNotifications.addEventListener('click', () => notificationsModal.classList.remove('open'));
 }
+
+// --- 11. MENU DRAWER ---
+const menuDrawer = document.getElementById('menuDrawer');
+const menuOverlay = document.getElementById('menuOverlay');
+const btnOpenMenu = document.getElementById('btnOpenMenu');
+const btnCloseMenu = document.getElementById('btnCloseMenu');
+
+function openMenu() {
+    menuDrawer.classList.add('open');
+    menuOverlay.classList.add('open');
+}
+function closeMenu() {
+    menuDrawer.classList.remove('open');
+    menuOverlay.classList.remove('open');
+}
+if (btnOpenMenu) btnOpenMenu.addEventListener('click', openMenu);
+if (btnCloseMenu) btnCloseMenu.addEventListener('click', closeMenu);
+if (menuOverlay) menuOverlay.addEventListener('click', closeMenu);
+
+// --- CONDIVIDI APP ---
+document.getElementById('menuShareApp')?.addEventListener('click', () => {
+    closeMenu();
+    const shareData = {
+        title: 'ShotMate 🥃',
+        text: 'Traccia i tuoi bicchierini da shot nel mondo! Unisciti a me su ShotMate 🌍',
+        url: 'https://gabrielcarminati16-coder.github.io/SHOTMATE/'
+    };
+    if (navigator.share) {
+        navigator.share(shareData).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(shareData.url).then(() => {
+            alert('Link copiato negli appunti! 📋\n' + shareData.url);
+        });
+    }
+});
+
+// --- ESPORTA CSV ---
+document.getElementById('menuExportCSV')?.addEventListener('click', () => {
+    closeMenu();
+    if (myShots.length === 0) {
+        alert('Non hai ancora bicchierini da esportare!');
+        return;
+    }
+    const header = ['Città', 'Stato', 'Data', 'Note'];
+    const rows = myShots.map(s => [
+        `"${(s.city || '').replace(/"/g, '""')}"`,
+        `"${(s.country || '').replace(/"/g, '""')}"`,
+        `"${s.date || ''}"`,
+        `"${(s.notes || '').replace(/"/g, '""')}"`
+    ].join(','));
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shotmate-collezione-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+// --- COME FUNZIONA ---
+const howItWorksModal = document.getElementById('howItWorksModal');
+document.getElementById('menuHowItWorks')?.addEventListener('click', () => {
+    closeMenu();
+    howItWorksModal?.classList.add('open');
+});
+document.getElementById('btnCloseHowItWorks')?.addEventListener('click', () => {
+    howItWorksModal?.classList.remove('open');
+});
+
+// --- NOVITÀ / CHANGELOG ---
+const changelogModal = document.getElementById('changelogModal');
+document.getElementById('menuChangelog')?.addEventListener('click', () => {
+    closeMenu();
+    changelogModal?.classList.add('open');
+});
+document.getElementById('btnCloseChangelog')?.addEventListener('click', () => {
+    changelogModal?.classList.remove('open');
+});
+
+// --- GENERA CARD PROFILO ---
+const profileCardModal = document.getElementById('profileCardModal');
+document.getElementById('menuGenerateCard')?.addEventListener('click', () => {
+    closeMenu();
+    generateProfileCard();
+    profileCardModal?.classList.add('open');
+});
+document.getElementById('btnCloseProfileCard')?.addEventListener('click', () => {
+    profileCardModal?.classList.remove('open');
+});
+
+function generateProfileCard() {
+    const canvas = document.getElementById('profileCardCanvas');
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const W = 680, H = 380;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = '100%';
+    canvas.style.maxWidth = '340px';
+    canvas.style.height = 'auto';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // Sfondo
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#000f2e');
+    bg.addColorStop(1, '#001a4d');
+    ctx.fillStyle = bg;
+    ctx.roundRect(0, 0, W, H, 24);
+    ctx.fill();
+
+    // Decorazione cerchio sfondo
+    ctx.beginPath();
+    ctx.arc(W - 60, 60, 120, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,119,255,0.07)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(60, H - 40, 80, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(241,196,15,0.05)';
+    ctx.fill();
+
+    // Logo
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillStyle = '#3a5070';
+    ctx.letterSpacing = '3px';
+    ctx.fillText('SHOTMATE', 36, 44);
+
+    // Emoji bicchierino grande
+    ctx.font = '56px serif';
+    ctx.fillText('🥃', 36, 120);
+
+    // Nome utente
+    ctx.font = 'bold 32px sans-serif';
+    ctx.fillStyle = '#e8f0ff';
+    ctx.fillText(myProfile.username || 'ShotMater', 36, 168);
+
+    // Badge
+    const badge = getBadgeEmoji(myShots.length);
+    const cities = new Set(myShots.map(s => (s.city || '').toLowerCase()).filter(Boolean)).size;
+    const countries = new Set(myShots.map(s => (s.country || '').toLowerCase()).filter(Boolean)).size;
+
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = '#5d6d7e';
+    ctx.fillText('Medaglia: ' + badge, 36, 200);
+
+    // Linea separatrice
+    ctx.strokeStyle = '#0a2040';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(36, 222);
+    ctx.lineTo(W - 36, 222);
+    ctx.stroke();
+
+    // Stats
+    const stats = [
+        { label: 'Bicchierini', value: myShots.length, icon: '🥃' },
+        { label: 'Città', value: cities, icon: '🏙️' },
+        { label: 'Paesi', value: countries, icon: '🌍' },
+    ];
+    stats.forEach((s, i) => {
+        const x = 36 + i * 200;
+        ctx.font = 'bold 36px sans-serif';
+        ctx.fillStyle = '#0077ff';
+        ctx.fillText(s.value, x, 282);
+        ctx.font = '13px sans-serif';
+        ctx.fillStyle = '#5d6d7e';
+        ctx.fillText(s.icon + ' ' + s.label, x, 306);
+    });
+
+    // Footer
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#1a3a60';
+    ctx.fillText('gabrielcarminati16-coder.github.io/SHOTMATE', 36, H - 20);
+}
+
+document.getElementById('btnDownloadCard')?.addEventListener('click', () => {
+    const canvas = document.getElementById('profileCardCanvas');
+    if (!canvas) return;
+    const a = document.createElement('a');
+    a.download = `shotmate-card-${myProfile.username || 'profilo'}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+});
