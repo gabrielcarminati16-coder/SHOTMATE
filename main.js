@@ -657,6 +657,30 @@ if (btnSaveFriend) {
 }
 
 // --- 8. MAPPA (LEAFLET) ---
+// Cache coordinate geocoding in memoria: { "città,stato": [lat, lon] }
+const geocodeCache = {};
+
+function addMarkerToMap(shot, lat, lon) {
+    const goldDotIcon = L.divIcon({
+        className: 'gold-dot-marker',
+        html: '<div style="width:10px; height:10px; background-color:#f1c40f; border:1.5px solid #00112c; border-radius:50%; box-shadow:0 0 8px rgba(241,196,15,0.7);"></div>',
+        iconSize: [10, 10],
+        iconAnchor: [5, 5],
+    });
+    const shotImgPreview = shot.image
+        ? `<div style="width:100%; height:90px; background-color:#000b1d; border-radius:6px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; overflow:hidden;"><img src="${shot.image}" style="width:100%; height:100%; object-fit:contain;"></div>`
+        : '';
+    L.marker([lat, lon], { icon: goldDotIcon }).addTo(map)
+        .bindPopup(`
+            <div style="text-align:center; font-family:sans-serif;">
+                ${shotImgPreview}
+                <b style="color:#ffffff; font-size:13px; text-transform:uppercase; display:block; margin-bottom:1px;">${shot.city}</b>
+                <span style="color:#8a99ad; font-size:11px; display:block; margin-bottom:8px;">${shot.country || ''}</span>
+                <button onclick="editShotFromMap('${shot.id}')" style="background:#0077ff; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer; width:100%;">Modifica</button>
+            </div>
+        `, { minWidth: 120, maxWidth: 140, closeButton: false });
+}
+
 function initOrRefreshMap() {
     if (!map) {
         map = L.map('map').setView([42.0, 12.5], 4);
@@ -665,36 +689,34 @@ function initOrRefreshMap() {
     setTimeout(() => { if (map) map.invalidateSize(); }, 200);
     map.eachLayer((layer) => { if (layer instanceof L.Marker) map.removeLayer(layer); });
 
+    // Separa shot già in cache da quelli da geocodificare
+    const toFetch = [];
     myShots.forEach(shot => {
-        if (shot.city) {
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(shot.city + ',' + (shot.country || ''))}`)
+        if (!shot.city) return;
+        const key = (shot.city + ',' + (shot.country || '')).toLowerCase().trim();
+        if (geocodeCache[key]) {
+            addMarkerToMap(shot, geocodeCache[key][0], geocodeCache[key][1]);
+        } else {
+            toFetch.push({ shot, key });
+        }
+    });
+
+    // Geocodifica uno alla volta con 1.1s di delay (rispetta rate limit Nominatim: max 1 req/s)
+    toFetch.forEach(({ shot, key }, i) => {
+        setTimeout(() => {
+            const query = encodeURIComponent(shot.city + ',' + (shot.country || ''));
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`)
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.length > 0) {
-                        const lat = data[0].lat;
-                        const lon = data[0].lon;
-                        const goldDotIcon = L.divIcon({
-                            className: 'gold-dot-marker',
-                            html: '<div style="width:10px; height:10px; background-color:#f1c40f; border:1.5px solid #00112c; border-radius:50%; box-shadow:0 0 8px rgba(241,196,15,0.7);"></div>',
-                            iconSize: [10, 10],
-                            iconAnchor: [5, 5],
-                        });
-                        const shotImgPreview = shot.image
-                            ? `<div style="width:100%; height:90px; background-color:#000b1d; border-radius:6px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; overflow:hidden;"><img src="${shot.image}" style="width:100%; height:100%; object-fit:contain;"></div>`
-                            : '';
-                        L.marker([lat, lon], { icon: goldDotIcon }).addTo(map)
-                            .bindPopup(`
-                                <div style="text-align:center; font-family:sans-serif;">
-                                    ${shotImgPreview}
-                                    <b style="color:#ffffff; font-size:13px; text-transform:uppercase; display:block; margin-bottom:1px;">${shot.city}</b>
-                                    <span style="color:#8a99ad; font-size:11px; display:block; margin-bottom:8px;">${shot.country || ''}</span>
-                                    <button onclick="editShotFromMap('${shot.id}')" style="background:#0077ff; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer; width:100%;">Modifica</button>
-                                </div>
-                            `, { minWidth: 120, maxWidth: 140, closeButton: false });
+                        const lat = parseFloat(data[0].lat);
+                        const lon = parseFloat(data[0].lon);
+                        geocodeCache[key] = [lat, lon];
+                        addMarkerToMap(shot, lat, lon);
                     }
                 })
-                .catch(err => console.error("Errore Geocoding:", err));
-        }
+                .catch(err => console.error('Errore Geocoding:', err));
+        }, i * 1100);
     });
 }
 
