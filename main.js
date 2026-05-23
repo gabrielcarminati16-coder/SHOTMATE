@@ -429,21 +429,6 @@ if (btnSaveShot) {
 
         const shotPayload = { city, country, date, notes, image: base64Image };
 
-        // Geocodifica al salvataggio e salva lat/lon su Firestore
-        if (city) {
-            try {
-                const q = encodeURIComponent(city + ',' + (country || ''));
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`, {
-                    headers: { 'Accept': 'application/json', 'Accept-Language': 'it,en' }
-                });
-                const geo = await res.json();
-                if (geo && geo.length > 0) {
-                    shotPayload.lat = parseFloat(geo[0].lat);
-                    shotPayload.lon = parseFloat(geo[0].lon);
-                }
-            } catch (e) { console.warn('Geocoding al salvataggio fallito:', e); }
-        }
-
         if (id) {
             if (!base64Image) {
                 const oldShot = myShots.find(s => s.id === id);
@@ -672,50 +657,7 @@ if (btnSaveFriend) {
 }
 
 // --- 8. MAPPA (LEAFLET) ---
-function addMarkerToMap(shot, lat, lon) {
-    const goldDotIcon = L.divIcon({
-        className: 'gold-dot-marker',
-        html: '<div style="width:12px; height:12px; background-color:#f1c40f; border:2px solid #00112c; border-radius:50%; box-shadow:0 0 8px rgba(241,196,15,0.8);"></div>',
-        iconSize: [12, 12],
-        iconAnchor: [6, 6],
-    });
-    const shotImgPreview = shot.image
-        ? `<div style="width:100%; height:90px; background-color:#000b1d; border-radius:6px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; overflow:hidden;"><img src="${shot.image}" style="width:100%; height:100%; object-fit:contain;"></div>`
-        : '';
-    L.marker([lat, lon], { icon: goldDotIcon }).addTo(map)
-        .bindPopup(`
-            <div style="text-align:center; font-family:sans-serif;">
-                ${shotImgPreview}
-                <b style="color:#ffffff; font-size:13px; text-transform:uppercase; display:block; margin-bottom:1px;">${shot.city}</b>
-                <span style="color:#8a99ad; font-size:11px; display:block; margin-bottom:8px;">${shot.country || ''}</span>
-                <button onclick="editShotFromMap('${shot.id}')" style="background:#0077ff; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer; width:100%;">Modifica</button>
-            </div>
-        `, { minWidth: 120, maxWidth: 140, closeButton: false });
-}
-
-async function geocodeAndSave(uid, shot) {
-    // Geocodifica una città e salva le coordinate su Firestore
-    try {
-        const q = encodeURIComponent(shot.city + ',' + (shot.country || ''));
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`, {
-            headers: { 'Accept': 'application/json', 'Accept-Language': 'it,en' }
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        if (data && data.length > 0) {
-            const lat = parseFloat(data[0].lat);
-            const lon = parseFloat(data[0].lon);
-            // Salva le coordinate su Firestore per sempre
-            await db.collection("users").doc(uid).collection("shots").doc(shot.id).update({ lat, lon });
-            return { lat, lon };
-        }
-    } catch (e) {
-        console.warn('Geocoding fallito per', shot.city, ':', e);
-    }
-    return null;
-}
-
-async function initOrRefreshMap() {
+function initOrRefreshMap() {
     if (!map) {
         map = L.map('map').setView([42.0, 12.5], 4);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
@@ -723,38 +665,37 @@ async function initOrRefreshMap() {
     setTimeout(() => { if (map) map.invalidateSize(); }, 200);
     map.eachLayer((layer) => { if (layer instanceof L.Marker) map.removeLayer(layer); });
 
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const mapLoadingEl = document.getElementById('mapLoadingMsg');
-
-    // Separa shot con coordinate già salvate da quelli che ne hanno bisogno
-    const withCoords = myShots.filter(s => s.city && s.lat && s.lon);
-    const needsGeo = myShots.filter(s => s.city && (!s.lat || !s.lon));
-
-    // Aggiungi subito tutti i marker con coordinate già note
-    withCoords.forEach(shot => addMarkerToMap(shot, shot.lat, shot.lon));
-
-    if (needsGeo.length === 0) {
-        if (mapLoadingEl) mapLoadingEl.style.display = 'none';
-        return;
-    }
-
-    // Geocodifica i vecchi bicchierini senza coordinate, uno alla volta
-    if (mapLoadingEl) {
-        mapLoadingEl.style.display = 'block';
-        mapLoadingEl.textContent = `⏳ Aggiornamento coordinate... 0/${needsGeo.length}`;
-    }
-
-    for (let i = 0; i < needsGeo.length; i++) {
-        const shot = needsGeo[i];
-        if (mapLoadingEl) mapLoadingEl.textContent = `⏳ Aggiornamento coordinate... ${i + 1}/${needsGeo.length}`;
-        const coords = await geocodeAndSave(user.uid, shot);
-        if (coords) addMarkerToMap(shot, coords.lat, coords.lon);
-        if (i < needsGeo.length - 1) await new Promise(r => setTimeout(r, 1200));
-    }
-
-    if (mapLoadingEl) setTimeout(() => { mapLoadingEl.style.display = 'none'; }, 800);
+    myShots.forEach(shot => {
+        if (shot.city) {
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(shot.city + ',' + (shot.country || ''))}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const lat = data[0].lat;
+                        const lon = data[0].lon;
+                        const goldDotIcon = L.divIcon({
+                            className: 'gold-dot-marker',
+                            html: '<div style="width:10px; height:10px; background-color:#f1c40f; border:1.5px solid #00112c; border-radius:50%; box-shadow:0 0 8px rgba(241,196,15,0.7);"></div>',
+                            iconSize: [10, 10],
+                            iconAnchor: [5, 5],
+                        });
+                        const shotImgPreview = shot.image
+                            ? `<div style="width:100%; height:90px; background-color:#000b1d; border-radius:6px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; overflow:hidden;"><img src="${shot.image}" style="width:100%; height:100%; object-fit:contain;"></div>`
+                            : '';
+                        L.marker([lat, lon], { icon: goldDotIcon }).addTo(map)
+                            .bindPopup(`
+                                <div style="text-align:center; font-family:sans-serif;">
+                                    ${shotImgPreview}
+                                    <b style="color:#ffffff; font-size:13px; text-transform:uppercase; display:block; margin-bottom:1px;">${shot.city}</b>
+                                    <span style="color:#8a99ad; font-size:11px; display:block; margin-bottom:8px;">${shot.country || ''}</span>
+                                    <button onclick="editShotFromMap('${shot.id}')" style="background:#0077ff; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer; width:100%;">Modifica</button>
+                                </div>
+                            `, { minWidth: 120, maxWidth: 140, closeButton: false });
+                    }
+                })
+                .catch(err => console.error("Errore Geocoding:", err));
+        }
+    });
 }
 
 window.editShotFromMap = function (id) {
@@ -1174,3 +1115,173 @@ document.getElementById('btnDownloadCard')?.addEventListener('click', () => {
     a.href = canvas.toDataURL('image/png');
     a.click();
 });
+
+// =============================================
+// INSERIMENTO MULTIPLO
+// =============================================
+const multiModal = document.getElementById('multiModal');
+const btnOpenMultiModal = document.getElementById('btnOpenMultiModal');
+const btnCloseMultiModal = document.getElementById('btnCloseMultiModal');
+const btnSaveMulti = document.getElementById('btnSaveMulti');
+const btnAddRow = document.getElementById('btnAddRow');
+const multiRowsContainer = document.getElementById('multiRowsContainer');
+
+let multiRowCount = 0;
+
+function createMultiRow() {
+    multiRowCount++;
+    const n = multiRowCount;
+    const row = document.createElement('div');
+    row.className = 'multi-row';
+    row.id = `multiRow${n}`;
+    row.innerHTML = `
+        <span class="multi-row-num">#${n}</span>
+        <button class="btn-remove-row" onclick="removeMultiRow(${n})">
+            <span class="material-icons" style="font-size:18px;">close</span>
+        </button>
+        <input type="text" placeholder="Città" id="mCity${n}" style="margin-top:18px;">
+        <input type="text" placeholder="Stato" id="mCountry${n}" style="margin-top:18px;">
+        <input type="date" id="mDate${n}" class="multi-row-full">
+        <input type="text" placeholder="Note (opzionale)" id="mNotes${n}" class="multi-row-full">
+        <div class="multi-row-full">
+            <button class="btn-toggle-photo" onclick="toggleMultiPhoto(${n})" id="btnTogglePhoto${n}">
+                <span class="material-icons" style="font-size:16px;">add_a_photo</span> Aggiungi foto
+            </button>
+            <div class="multi-photo-section" id="multiPhotoSection${n}" style="display:none;">
+                <input type="file" accept="image/*" id="mImageInput${n}" style="display:none;"
+                    onchange="handleMultiImage(${n}, this)">
+                <div class="multi-photo-preview" id="mImagePreview${n}"
+                    onclick="document.getElementById('mImageInput${n}').click()">
+                    <span class="material-icons" style="font-size:24px;color:#5d6d7e;">photo_camera</span>
+                    <span style="font-size:11px;color:#5d6d7e;margin-top:4px;">Tocca per scegliere</span>
+                </div>
+            </div>
+        </div>
+    `;
+    multiRowsContainer.appendChild(row);
+    document.getElementById(`mCity${n}`).focus();
+}
+
+function toggleMultiPhoto(n) {
+    const section = document.getElementById(`multiPhotoSection${n}`);
+    const btn = document.getElementById(`btnTogglePhoto${n}`);
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        btn.innerHTML = '<span class="material-icons" style="font-size:16px;">remove</span> Rimuovi foto';
+        btn.style.color = '#e74c3c';
+        // Cancella immagine se collassa
+    } else {
+        section.style.display = 'none';
+        btn.innerHTML = '<span class="material-icons" style="font-size:16px;">add_a_photo</span> Aggiungi foto';
+        btn.style.color = '';
+        // Reset immagine
+        const preview = document.getElementById(`mImagePreview${n}`);
+        preview.innerHTML = '<span class="material-icons" style="font-size:24px;color:#5d6d7e;">photo_camera</span><span style="font-size:11px;color:#5d6d7e;margin-top:4px;">Tocca per scegliere</span>';
+        preview.dataset.image = '';
+    }
+}
+window.toggleMultiPhoto = toggleMultiPhoto;
+
+function handleMultiImage(n, input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const maxSize = 1000;
+            let w = img.width, h = img.height;
+            if (w > maxSize || h > maxSize) {
+                if (w >= h) { h = Math.round(h * maxSize / w); w = maxSize; }
+                else { w = Math.round(w * maxSize / h); h = maxSize; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const base64 = canvas.toDataURL('image/jpeg', 0.7);
+            const preview = document.getElementById(`mImagePreview${n}`);
+            preview.innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;">`;
+            preview.dataset.image = base64;
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+window.handleMultiImage = handleMultiImage;
+
+function removeMultiRow(n) {
+    const row = document.getElementById(`multiRow${n}`);
+    if (row) row.remove();
+}
+window.removeMultiRow = removeMultiRow;
+
+if (btnOpenMultiModal) {
+    btnOpenMultiModal.addEventListener('click', () => {
+        multiRowsContainer.innerHTML = '';
+        multiRowCount = 0;
+        createMultiRow();
+        createMultiRow();
+        multiModal.classList.add('open');
+    });
+}
+if (btnCloseMultiModal) {
+    btnCloseMultiModal.addEventListener('click', () => multiModal.classList.remove('open'));
+}
+if (btnAddRow) {
+    btnAddRow.addEventListener('click', createMultiRow);
+}
+
+if (btnSaveMulti) {
+    btnSaveMulti.addEventListener('click', async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const rows = multiRowsContainer.querySelectorAll('.multi-row');
+        const shots = [];
+        rows.forEach(row => {
+            const id = row.id.replace('multiRow', '');
+            const city = (document.getElementById(`mCity${id}`)?.value || '').trim();
+            const country = (document.getElementById(`mCountry${id}`)?.value || '').trim();
+            const date = document.getElementById(`mDate${id}`)?.value || '';
+            const notes = (document.getElementById(`mNotes${id}`)?.value || '').trim();
+            const preview = document.getElementById(`mImagePreview${id}`);
+            const image = preview?.dataset?.image || '';
+            if (city) shots.push({ city, country, date, notes, image });
+        });
+
+        if (shots.length === 0) {
+            alert('Inserisci almeno una città!');
+            return;
+        }
+
+        btnSaveMulti.textContent = `Salvataggio...`;
+        btnSaveMulti.disabled = true;
+
+        for (let i = 0; i < shots.length; i++) {
+            const s = shots[i];
+            btnSaveMulti.textContent = `Salvataggio ${i+1}/${shots.length}...`;
+            try {
+                // Geocodifica
+                if (s.city) {
+                    const q = encodeURIComponent(s.city + ',' + (s.country || ''));
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`, {
+                        headers: { 'Accept': 'application/json', 'Accept-Language': 'it,en' }
+                    });
+                    const geo = await res.json();
+                    if (geo && geo.length > 0) {
+                        s.lat = parseFloat(geo[0].lat);
+                        s.lon = parseFloat(geo[0].lon);
+                    }
+                    if (i < shots.length - 1) await new Promise(r => setTimeout(r, 1100));
+                }
+                await db.collection("users").doc(user.uid).collection("shots").add(s);
+            } catch(e) {
+                console.error('Errore salvataggio:', e);
+            }
+        }
+
+        btnSaveMulti.textContent = 'Salva tutti';
+        btnSaveMulti.disabled = false;
+        multiModal.classList.remove('open');
+    });
+}
