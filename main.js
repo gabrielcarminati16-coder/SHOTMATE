@@ -657,15 +657,24 @@ if (btnSaveFriend) {
 }
 
 // --- 8. MAPPA (LEAFLET) ---
-// Cache coordinate geocoding in memoria: { "città,stato": [lat, lon] }
-const geocodeCache = {};
+// --- CACHE COORDINATE (persistente in localStorage) ---
+const GEOCACHE_KEY = 'shotmate_geocache';
+
+function loadGeoCache() {
+    try { return JSON.parse(localStorage.getItem(GEOCACHE_KEY) || '{}'); }
+    catch (e) { return {}; }
+}
+function saveGeoCache(cache) {
+    try { localStorage.setItem(GEOCACHE_KEY, JSON.stringify(cache)); }
+    catch (e) { console.warn('localStorage pieno, cache non salvata'); }
+}
 
 function addMarkerToMap(shot, lat, lon) {
     const goldDotIcon = L.divIcon({
         className: 'gold-dot-marker',
-        html: '<div style="width:10px; height:10px; background-color:#f1c40f; border:1.5px solid #00112c; border-radius:50%; box-shadow:0 0 8px rgba(241,196,15,0.7);"></div>',
-        iconSize: [10, 10],
-        iconAnchor: [5, 5],
+        html: '<div style="width:12px; height:12px; background-color:#f1c40f; border:2px solid #00112c; border-radius:50%; box-shadow:0 0 8px rgba(241,196,15,0.8);"></div>',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6],
     });
     const shotImgPreview = shot.image
         ? `<div style="width:100%; height:90px; background-color:#000b1d; border-radius:6px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; overflow:hidden;"><img src="${shot.image}" style="width:100%; height:100%; object-fit:contain;"></div>`
@@ -689,57 +698,53 @@ function initOrRefreshMap() {
     setTimeout(() => { if (map) map.invalidateSize(); }, 200);
     map.eachLayer((layer) => { if (layer instanceof L.Marker) map.removeLayer(layer); });
 
-    // Messaggio di caricamento se ci sono shot da geocodificare
-    const mapLoadingEl = document.getElementById('mapLoadingMsg');
-
-    // Separa shot già in cache da quelli da geocodificare
+    const geoCache = loadGeoCache();
     const toFetch = [];
+
+    // Aggiungi subito i marker già in cache (istantanei)
     myShots.forEach(shot => {
         if (!shot.city) return;
         const key = (shot.city + ',' + (shot.country || '')).toLowerCase().trim();
-        if (geocodeCache[key]) {
-            addMarkerToMap(shot, geocodeCache[key][0], geocodeCache[key][1]);
+        if (geoCache[key]) {
+            addMarkerToMap(shot, geoCache[key][0], geoCache[key][1]);
         } else {
             toFetch.push({ shot, key });
         }
     });
 
+    // Mostra indicatore solo se ci sono città da geocodificare
+    const mapLoadingEl = document.getElementById('mapLoadingMsg');
     if (toFetch.length > 0 && mapLoadingEl) {
         mapLoadingEl.style.display = 'block';
-        mapLoadingEl.textContent = `Caricamento marker... 0/${toFetch.length}`;
+        mapLoadingEl.textContent = `⏳ Caricamento marker... 0/${toFetch.length}`;
     }
 
-    // Geocodifica uno alla volta con 1.1s di delay (rispetta rate limit Nominatim: max 1 req/s)
+    // Geocodifica le nuove città una alla volta (rate limit Nominatim: 1 req/s)
     toFetch.forEach(({ shot, key }, i) => {
         setTimeout(() => {
-            if (mapLoadingEl) mapLoadingEl.textContent = `Caricamento marker... ${i+1}/${toFetch.length}`;
+            if (mapLoadingEl) mapLoadingEl.textContent = `⏳ Caricamento marker... ${i + 1}/${toFetch.length}`;
             const query = encodeURIComponent(shot.city + ',' + (shot.country || ''));
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
-                    headers: { 'Accept': 'application/json', 'Accept-Language': 'it,en' }
-                })
-                .then(res => {
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    return res.json();
-                })
+                headers: { 'Accept': 'application/json', 'Accept-Language': 'it,en' }
+            })
+                .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
                 .then(data => {
                     if (data && data.length > 0) {
                         const lat = parseFloat(data[0].lat);
                         const lon = parseFloat(data[0].lon);
-                        geocodeCache[key] = [lat, lon];
+                        // Salva in cache persistente
+                        geoCache[key] = [lat, lon];
+                        saveGeoCache(geoCache);
                         addMarkerToMap(shot, lat, lon);
-                    } else {
-                        console.warn('Nessun risultato per:', shot.city, shot.country);
+                    }
+                    if (i === toFetch.length - 1 && mapLoadingEl) {
+                        setTimeout(() => { mapLoadingEl.style.display = 'none'; }, 800);
                     }
                 })
-                .catch(err => console.error('Errore Geocoding per', shot.city, ':', err));
-            // Nascondi messaggio all'ultimo
-            if (i === toFetch.length - 1 && mapLoadingEl) {
-                setTimeout(() => { mapLoadingEl.style.display = 'none'; }, 800);
-            }
+                .catch(err => console.error('Geocoding fallito per', shot.city, ':', err));
         }, i * 1100);
     });
 
-    // Se non c'è niente da fetchare, nascondi subito
     if (toFetch.length === 0 && mapLoadingEl) mapLoadingEl.style.display = 'none';
 }
 
