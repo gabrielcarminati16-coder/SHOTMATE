@@ -26,7 +26,6 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
-    padding-top: calc(15px + env(safe-area-inset-top));
     background-color: #00112c;
     position: sticky;
     top: 0;
@@ -53,7 +52,7 @@ body {
 /* FAB Button (Floating Action Button) */
 .fab-add-btn {
     position: fixed;
-    bottom: calc(96px + env(safe-area-inset-bottom));
+    bottom: calc(100px + env(safe-area-inset-bottom));
     right: 20px;
     width: 58px;
     height: 58px;
@@ -182,30 +181,18 @@ body {
 .shot-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: auto; padding-top: 8px; }
 .btn-icon { background: none; border: none; color: #8a99ad; cursor: pointer; }
 
-/* LA MAPPA */
+/* LA MAPPA NERA */
 #map {
     width: 100%;
     height: calc(100vh - 250px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    max-height: 58vh;
+    max-height: 54vh;
     border-radius: 20px;
     background-color: #000b1d;
     border: 1px solid rgba(0, 82, 204, 0.3);
 }
-/* Filtra solo i tile della mappa, NON i marker o popup */
-.leaflet-tile-pane {
+.leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out {
     filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
 }
-.leaflet-control-zoom-in, .leaflet-control-zoom-out {
-    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-}
-/* Marker e popup esclusi dal filtro */
-.leaflet-marker-pane,
-.leaflet-shadow-pane,
-.leaflet-overlay-pane,
-.leaflet-popup-pane {
-    filter: none !important;
-}
-.gold-dot-marker { background: none !important; border: none !important; }
 
 /* Stili per il Pop-up Compatto con foto intera */
 .leaflet-popup-content-wrapper {
@@ -392,9 +379,9 @@ body {
 .nav-item { display: flex; flex-direction: column; align-items: center; color: #8a99ad; font-size: 11px; gap: 4px; cursor: pointer; -webkit-tap-highlight-color: transparent;}
 .nav-item.active { color: #0077ff; }
 .nav-item .material-icons { font-size: 24px; }
-
+/* Stile aggiuntivo per rendere unico l'ID dell'utente */
 .friend-item.is-me h4 {
-    color: #f1c40f;
+    color: #f1c40f; /* Il tuo nome risalterà in oro in classifica */
 }
 
 /* Amici toccabili per vedere la collezione */
@@ -442,9 +429,11 @@ body {
     transform: scale(0.92);
 }
 
+/* Badge notifiche campanellina */
 #notifBadge {
     pointer-events: none;
 }
+
 
 /* ============================
    MENU DRAWER
@@ -480,8 +469,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 20px 20px;
-    padding-top: calc(20px + env(safe-area-inset-top));
+    padding: 52px 20px 20px;
     border-bottom: 1px solid #0a2040;
 }
 .menu-drawer-logo {
