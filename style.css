@@ -26,6 +26,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
+    padding-top: calc(15px + env(safe-area-inset-top));
     background-color: #00112c;
     position: sticky;
     top: 0;
@@ -468,7 +469,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 52px 20px 20px;
+    padding: 20px 20px 20px;
+    padding-top: calc(20px + env(safe-area-inset-top));
     border-bottom: 1px solid #0a2040;
 }
 .menu-drawer-logo {
@@ -555,4 +557,5 @@ body {
     padding: 10px 14px;
     font-size: 14px;
     color: #c8d8f0;
-}
+    }
+                 
