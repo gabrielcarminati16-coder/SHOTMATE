@@ -8,6 +8,8 @@ let map = null;
 let base64Image = "";
 let globalRegioniVisitate = new Set();
 let friendsListeners = {};
+let friendsShotCounts = {}; // traccia i conteggi precedenti per rilevare nuovi shot
+let notifications = []; // feed notifiche locale
 
 const italiaRegioniDatabase = {
     'abruzzo': ['aquila', 'l\'aquila', 'pescara', 'chieti', 'teramo', 'sulmona', 'vasto', 'montesilvano'],
@@ -96,7 +98,28 @@ function setupRealtimeSync(uid) {
                 friendsListeners[friend.uid] = db.collection("users").doc(friend.uid).collection("shots")
                     .onSnapshot(shotsSnap => {
                         const friendShotsList = shotsSnap.docs.map(d => d.data());
-                        friend.shotsCount = friendShotsList.length;
+                        const newCount = friendShotsList.length;
+                        const prevCount = friendsShotCounts[friend.uid];
+
+                        // Rileva nuovo bicchierino aggiunto
+                        if (prevCount !== undefined && newCount > prevCount) {
+                            const sorted = friendShotsList.filter(s => s.date).sort((a, b) => b.date.localeCompare(a.date));
+                            const lastShot = sorted[0] || friendShotsList[friendShotsList.length - 1];
+                            const city = lastShot?.city || "da qualche parte";
+                            const notif = {
+                                id: Date.now(),
+                                friendName: friend.name,
+                                city,
+                                time: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+                                read: false
+                            };
+                            notifications.unshift(notif);
+                            if (notifications.length > 30) notifications.pop();
+                            updateNotifBadge();
+                        }
+                        friendsShotCounts[friend.uid] = newCount;
+
+                        friend.shotsCount = newCount;
                         if (friendShotsList.length > 0) {
                             const validShots = friendShotsList.filter(s => s.date).sort((a, b) => b.date.localeCompare(a.date));
                             friend.lastCity = validShots.length > 0
@@ -653,6 +676,8 @@ window.editShotFromMap = function (id) {
 // --- 9. COLLEZIONE AMICO ---
 let friendCollectionShots = [];
 let friendCollectionSearch = "";
+let friendCollectionSort = "newest";
+let currentFriendMember = null;
 
 const friendCollectionModal = document.getElementById('friendCollectionModal');
 const btnCloseFriendCollection = document.getElementById('btnCloseFriendCollection');
@@ -660,9 +685,23 @@ const friendCollectionGrid = document.getElementById('friendCollectionGrid');
 const friendCollectionSearchInput = document.getElementById('friendCollectionSearch');
 const clearFriendSearchBtn = document.getElementById('clearFriendSearch');
 
+// Ordinamento collezione amico
+document.querySelectorAll('[data-fsort]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-fsort]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        friendCollectionSort = btn.getAttribute('data-fsort');
+        renderFriendCollection();
+    });
+});
+
 function openFriendCollection(member) {
-    // Reset UI
+    currentFriendMember = member;
     friendCollectionSearch = "";
+    friendCollectionSort = "newest";
+    document.querySelectorAll('[data-fsort]').forEach(b => b.classList.remove('active'));
+    const firstSort = document.querySelector('[data-fsort="newest"]');
+    if (firstSort) firstSort.classList.add('active');
     if (friendCollectionSearchInput) { friendCollectionSearchInput.value = ""; }
     if (clearFriendSearchBtn) clearFriendSearchBtn.style.display = "none";
 
@@ -674,10 +713,8 @@ function openFriendCollection(member) {
     if (friendCollectionGrid) friendCollectionGrid.innerHTML = `<p style="grid-column:span 2; text-align:center; color:#8a99ad; padding:30px 0;">Caricamento...</p>`;
     if (friendCollectionModal) friendCollectionModal.classList.add('open');
 
-    // Carica shots dell'amico in tempo reale
     db.collection("users").doc(member.uid).collection("shots").get().then(snapshot => {
         friendCollectionShots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        friendCollectionShots.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
         if (countEl) countEl.innerText = `${friendCollectionShots.length} bicchierini`;
         renderFriendCollection();
     }).catch(err => {
@@ -686,14 +723,9 @@ function openFriendCollection(member) {
     });
 }
 
-function renderFriendCollection() {
-    if (!friendCollectionGrid) return;
-    friendCollectionGrid.innerHTML = "";
-
-    const emptyMsg = document.getElementById('friendCollectionEmpty');
+function getFriendSortedFiltered() {
+    let shots = [...friendCollectionShots];
     const q = friendCollectionSearch.toLowerCase().trim();
-
-    let shots = friendCollectionShots;
     if (q !== "") {
         shots = shots.filter(s =>
             (s.city || "").toLowerCase().includes(q) ||
@@ -701,6 +733,17 @@ function renderFriendCollection() {
             (s.notes || "").toLowerCase().includes(q)
         );
     }
+    if (friendCollectionSort === "newest") shots.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    else if (friendCollectionSort === "oldest") shots.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    else if (friendCollectionSort === "city") shots.sort((a, b) => (a.city || "").localeCompare(b.city || ""));
+    return shots;
+}
+
+function renderFriendCollection() {
+    if (!friendCollectionGrid) return;
+    friendCollectionGrid.innerHTML = "";
+    const emptyMsg = document.getElementById('friendCollectionEmpty');
+    const shots = getFriendSortedFiltered();
 
     if (friendCollectionShots.length === 0) {
         friendCollectionGrid.innerHTML = `<p style="grid-column:span 2; text-align:center; color:#8a99ad; padding:30px 0;">Questo amico non ha ancora bicchierini! 🥃</p>`;
@@ -719,23 +762,60 @@ function renderFriendCollection() {
         const imgHtml = shot.image
             ? `<img src="${shot.image}">`
             : `<span class="material-icons" style="color:#0077ff">local_bar</span>`;
+
+        // Reazioni: leggi quelle esistenti
+        const myUid = auth.currentUser?.uid || "";
+        const reactions = shot.reactions || {};
+        const emojis = ["🥃", "🔥", "😍", "👑"];
+        const reactionsHtml = emojis.map(e => {
+            const count = (reactions[e] || []).length;
+            const iMine = (reactions[e] || []).includes(myUid);
+            return `<button class="react-btn ${iMine ? 'reacted' : ''}" data-shotid="${shot.id}" data-emoji="${e}" onclick="toggleReaction('${currentFriendMember?.uid}','${shot.id}','${e}',this)">${e}${count > 0 ? `<span>${count}</span>` : ''}</button>`;
+        }).join('');
+
         card.innerHTML = `
             <div class="shot-img-container">${imgHtml}</div>
             <h4>${shot.city || "Qualche parte"}</h4>
             <p class="geo">${shot.country || "Mondo"}</p>
             ${shot.date ? `<p class="date">${formatDate(shot.date)}</p>` : ''}
             ${shot.notes ? `<p class="notes">${shot.notes}</p>` : ''}
+            <div class="reactions-row">${reactionsHtml}</div>
         `;
         friendCollectionGrid.appendChild(card);
     });
 }
 
-if (btnCloseFriendCollection) {
-    btnCloseFriendCollection.addEventListener('click', () => {
-        friendCollectionModal.classList.remove('open');
-    });
-}
+// Toggle reazione su uno shot dell'amico
+window.toggleReaction = async function(friendUid, shotId, emoji, btn) {
+    const user = auth.currentUser;
+    if (!user || !friendUid || !shotId) return;
+    const shotRef = db.collection("users").doc(friendUid).collection("shots").doc(shotId);
+    try {
+        const shotDoc = await shotRef.get();
+        if (!shotDoc.exists) return;
+        const reactions = shotDoc.data().reactions || {};
+        const whoReacted = reactions[emoji] || [];
+        let updated;
+        if (whoReacted.includes(user.uid)) {
+            updated = whoReacted.filter(uid => uid !== user.uid);
+        } else {
+            updated = [...whoReacted, user.uid];
+        }
+        await shotRef.update({ [`reactions.${emoji}`]: updated });
 
+        // Aggiorna UI localmente
+        const shot = friendCollectionShots.find(s => s.id === shotId);
+        if (shot) {
+            if (!shot.reactions) shot.reactions = {};
+            shot.reactions[emoji] = updated;
+        }
+        renderFriendCollection();
+    } catch(e) { console.error("Errore reazione:", e); }
+};
+
+if (btnCloseFriendCollection) {
+    btnCloseFriendCollection.addEventListener('click', () => friendCollectionModal.classList.remove('open'));
+}
 if (friendCollectionSearchInput) {
     friendCollectionSearchInput.addEventListener('input', () => {
         friendCollectionSearch = friendCollectionSearchInput.value;
@@ -743,7 +823,6 @@ if (friendCollectionSearchInput) {
         renderFriendCollection();
     });
 }
-
 if (clearFriendSearchBtn) {
     clearFriendSearchBtn.addEventListener('click', () => {
         friendCollectionSearchInput.value = "";
@@ -752,4 +831,55 @@ if (clearFriendSearchBtn) {
         friendCollectionSearchInput.focus();
         renderFriendCollection();
     });
+}
+
+// --- 10. NOTIFICHE ---
+function updateNotifBadge() {
+    const badge = document.getElementById('notifBadge');
+    const unread = notifications.filter(n => !n.read).length;
+    if (!badge) return;
+    if (unread > 0) {
+        badge.style.display = 'flex';
+        badge.innerText = unread > 9 ? '9+' : unread;
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+const btnOpenNotifications = document.getElementById('btnOpenNotifications');
+const btnCloseNotifications = document.getElementById('btnCloseNotifications');
+const notificationsModal = document.getElementById('notificationsModal');
+const notificationsList = document.getElementById('notificationsList');
+
+function renderNotifications() {
+    if (!notificationsList) return;
+    if (notifications.length === 0) {
+        notificationsList.innerHTML = `<p style="text-align:center; color:#8a99ad; padding:30px 0;">Nessuna novità per ora.<br>Aggiungi amici per vedere le loro attività! 🥃</p>`;
+        return;
+    }
+    notificationsList.innerHTML = "";
+    notifications.forEach(n => {
+        const item = document.createElement('div');
+        item.style.cssText = "display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #0a1f3d;";
+        item.innerHTML = `
+            <span class="material-icons" style="font-size:32px; color:#5d6d7e; flex-shrink:0;">account_circle</span>
+            <div style="flex:1;">
+                <p style="margin:0; font-size:14px; color:#e8f0ff;"><b>${n.friendName}</b> ha aggiunto un bicchierino da <b>${n.city}</b> 🥃</p>
+                <p style="margin:2px 0 0; font-size:11px; color:#5d6d7e;">${n.time}</p>
+            </div>
+        `;
+        notificationsList.appendChild(item);
+    });
+}
+
+if (btnOpenNotifications) {
+    btnOpenNotifications.addEventListener('click', () => {
+        notifications.forEach(n => n.read = true);
+        updateNotifBadge();
+        renderNotifications();
+        notificationsModal.classList.add('open');
+    });
+}
+if (btnCloseNotifications) {
+    btnCloseNotifications.addEventListener('click', () => notificationsModal.classList.remove('open'));
 }
