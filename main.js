@@ -341,18 +341,31 @@ function renderShots() {
 
     if (noResults) noResults.style.display = "none";
 
+    const emojis = ["🥃","🔥","😍","👑"];
+
     shots.forEach((shot) => {
         const card = document.createElement('div');
         card.className = 'shot-card';
+
         const imgHtml = shot.image
-            ? `<img src="${shot.image}">`
+            ? `<img src="${shot.image}" onclick="openPhotoLightbox('${shot.image.replace(/'/g, "\'")}')" style="cursor:zoom-in;">`
             : `<span class="material-icons" style="color:#0077ff">local_bar</span>`;
+
+        // Reazioni ricevute dagli amici
+        const reactions = shot.reactions || {};
+        const reactionsHtml = emojis.map(e => {
+            const count = (reactions[e] || []).length;
+            return count > 0 ? `<span class="my-reaction-badge">${e}<span class="my-reaction-count">${count}</span></span>` : '';
+        }).join('');
+        const reactionsRow = reactionsHtml ? `<div class="my-reactions-row">${reactionsHtml}</div>` : '';
+
         card.innerHTML = `
             <div class="shot-img-container">${imgHtml}</div>
             <h4>${shot.city || "Qualche parte"}</h4>
             <p class="geo">${shot.country || "Mondo"}</p>
             ${shot.date ? `<p class="date">${formatDate(shot.date)}</p>` : ''}
             ${shot.notes ? `<p class="notes">${shot.notes}</p>` : ''}
+            ${reactionsRow}
             <div class="shot-actions">
                 <button class="btn-icon" onclick="editShot('${shot.id}')"><span class="material-icons" style="font-size:18px;color:#8a99ad;">edit</span></button>
                 <button class="btn-icon" onclick="deleteShot('${shot.id}')"><span class="material-icons" style="font-size:18px;color:#e74c3c;">delete</span></button>
@@ -1117,193 +1130,18 @@ document.getElementById('btnDownloadCard')?.addEventListener('click', () => {
 });
 
 // =============================================
-// MAPPA FULLSCREEN
+// LIGHTBOX FOTO
 // =============================================
-const btnMapFullscreen = document.getElementById('btnMapFullscreen');
-const btnMapExitFullscreen = document.getElementById('btnMapExitFullscreen');
-const mapFullscreenIcon = document.getElementById('mapFullscreenIcon');
-const mapEl = document.getElementById('map');
-
-let mapIsFullscreen = false;
-
-function toggleMapFullscreen() {
-    mapIsFullscreen = !mapIsFullscreen;
-    if (mapIsFullscreen) {
-        mapEl.classList.add('map-fullscreen');
-        btnMapExitFullscreen.classList.add('visible');
-        mapFullscreenIcon.textContent = 'fullscreen_exit';
-        document.body.style.overflow = 'hidden';
-    } else {
-        mapEl.classList.remove('map-fullscreen');
-        btnMapExitFullscreen.classList.remove('visible');
-        mapFullscreenIcon.textContent = 'fullscreen';
-        document.body.style.overflow = '';
-    }
-    // Aggiorna dimensioni mappa dopo transizione
-    setTimeout(() => { if (map) map.invalidateSize(); }, 370);
+function openPhotoLightbox(src) {
+    const lb = document.getElementById('photoLightbox');
+    const img = document.getElementById('lightboxImg');
+    img.src = src;
+    lb.classList.add('open');
 }
-
-if (btnMapFullscreen) btnMapFullscreen.addEventListener('click', toggleMapFullscreen);
-if (btnMapExitFullscreen) btnMapExitFullscreen.addEventListener('click', toggleMapFullscreen);
-
-// =============================================
-// INSERIMENTO MULTIPLO
-// =============================================
-const multiModal = document.getElementById('multiModal');
-const btnOpenMultiModal = document.getElementById('btnOpenMultiModal');
-const btnCloseMultiModal = document.getElementById('btnCloseMultiModal');
-const btnSaveMulti = document.getElementById('btnSaveMulti');
-const btnAddRow = document.getElementById('btnAddRow');
-const multiRowsContainer = document.getElementById('multiRowsContainer');
-
-let multiRowCount = 0;
-
-function createMultiRow() {
-    multiRowCount++;
-    const n = multiRowCount;
-    const row = document.createElement('div');
-    row.className = 'multi-row';
-    row.id = `multiRow${n}`;
-    row.innerHTML = `
-        <span class="multi-row-num">#${n}</span>
-        <button class="btn-remove-row" onclick="removeMultiRow(${n})">
-            <span class="material-icons" style="font-size:18px;">close</span>
-        </button>
-        <input type="text" placeholder="Città" id="mCity${n}" style="margin-top:18px;">
-        <input type="text" placeholder="Stato" id="mCountry${n}" style="margin-top:18px;">
-        <input type="date" id="mDate${n}" class="multi-row-full">
-        <input type="text" placeholder="Note (opzionale)" id="mNotes${n}" class="multi-row-full">
-        <div class="multi-row-full">
-            <button class="btn-toggle-photo" onclick="toggleMultiPhoto(${n})" id="btnTogglePhoto${n}">
-                <span class="material-icons" style="font-size:16px;">add_a_photo</span> Aggiungi foto
-            </button>
-            <div class="multi-photo-section" id="multiPhotoSection${n}" style="display:none;">
-                <input type="file" accept="image/*" id="mImageInput${n}" style="display:none;"
-                    onchange="handleMultiImage(${n}, this)">
-                <div class="multi-photo-preview" id="mImagePreview${n}"
-                    onclick="document.getElementById('mImageInput${n}').click()">
-                    <span class="material-icons" style="font-size:24px;color:#5d6d7e;">photo_camera</span>
-                    <span style="font-size:11px;color:#5d6d7e;margin-top:4px;">Tocca per scegliere</span>
-                </div>
-            </div>
-        </div>
-    `;
-    multiRowsContainer.appendChild(row);
-    document.getElementById(`mCity${n}`).focus();
+function closePhotoLightbox() {
+    const lb = document.getElementById('photoLightbox');
+    lb.classList.remove('open');
+    document.getElementById('lightboxImg').src = '';
 }
-
-function removeMultiRow(n) {
-    const row = document.getElementById(`multiRow${n}`);
-    if (row) row.remove();
-}
-window.removeMultiRow = removeMultiRow;
-
-function toggleMultiPhoto(n) {
-    const section = document.getElementById(`multiPhotoSection${n}`);
-    const btn = document.getElementById(`btnTogglePhoto${n}`);
-    if (section.style.display === 'none') {
-        section.style.display = 'block';
-        btn.innerHTML = '<span class="material-icons" style="font-size:16px;">remove</span> Rimuovi foto';
-        btn.style.color = '#e74c3c';
-    } else {
-        section.style.display = 'none';
-        btn.innerHTML = '<span class="material-icons" style="font-size:16px;">add_a_photo</span> Aggiungi foto';
-        btn.style.color = '';
-        const preview = document.getElementById(`mImagePreview${n}`);
-        preview.innerHTML = '<span class="material-icons" style="font-size:24px;color:#5d6d7e;">photo_camera</span><span style="font-size:11px;color:#5d6d7e;margin-top:4px;">Tocca per scegliere</span>';
-        preview.dataset.image = '';
-    }
-}
-window.toggleMultiPhoto = toggleMultiPhoto;
-
-function handleMultiImage(n, input) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            const maxSize = 1000;
-            let w = img.width, h = img.height;
-            if (w > maxSize || h > maxSize) {
-                if (w >= h) { h = Math.round(h * maxSize / w); w = maxSize; }
-                else { w = Math.round(w * maxSize / h); h = maxSize; }
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = w; canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            const base64 = canvas.toDataURL('image/jpeg', 0.7);
-            const preview = document.getElementById(`mImagePreview${n}`);
-            preview.innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;">`;
-            preview.dataset.image = base64;
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-}
-window.handleMultiImage = handleMultiImage;
-
-if (btnOpenMultiModal) {
-    btnOpenMultiModal.addEventListener('click', () => {
-        multiRowsContainer.innerHTML = '';
-        multiRowCount = 0;
-        createMultiRow();
-        createMultiRow();
-        multiModal.classList.add('open');
-    });
-}
-if (btnCloseMultiModal) {
-    btnCloseMultiModal.addEventListener('click', () => multiModal.classList.remove('open'));
-}
-if (btnAddRow) {
-    btnAddRow.addEventListener('click', createMultiRow);
-}
-
-if (btnSaveMulti) {
-    btnSaveMulti.addEventListener('click', async () => {
-        const user = auth.currentUser;
-        if (!user) return;
-
-        const rows = multiRowsContainer.querySelectorAll('.multi-row');
-        const shots = [];
-        rows.forEach(row => {
-            const id = row.id.replace('multiRow', '');
-            const city = (document.getElementById(`mCity${id}`)?.value || '').trim();
-            const country = (document.getElementById(`mCountry${id}`)?.value || '').trim();
-            const date = document.getElementById(`mDate${id}`)?.value || '';
-            const notes = (document.getElementById(`mNotes${id}`)?.value || '').trim();
-            const preview = document.getElementById(`mImagePreview${id}`);
-            const image = preview?.dataset?.image || '';
-            if (city) shots.push({ city, country, date, notes, image });
-        });
-
-        if (shots.length === 0) { alert('Inserisci almeno una città!'); return; }
-
-        btnSaveMulti.textContent = 'Salvataggio...';
-        btnSaveMulti.disabled = true;
-
-        for (let i = 0; i < shots.length; i++) {
-            const s = shots[i];
-            btnSaveMulti.textContent = `Salvataggio ${i+1}/${shots.length}...`;
-            try {
-                if (s.city) {
-                    const q = encodeURIComponent(s.city + ',' + (s.country || ''));
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`, {
-                        headers: { 'Accept': 'application/json', 'Accept-Language': 'it,en' }
-                    });
-                    const geo = await res.json();
-                    if (geo && geo.length > 0) {
-                        s.lat = parseFloat(geo[0].lat);
-                        s.lon = parseFloat(geo[0].lon);
-                    }
-                    if (i < shots.length - 1) await new Promise(r => setTimeout(r, 1100));
-                }
-                await db.collection("users").doc(user.uid).collection("shots").add(s);
-            } catch(e) { console.error('Errore salvataggio:', e); }
-        }
-
-        btnSaveMulti.textContent = 'Salva tutti';
-        btnSaveMulti.disabled = false;
-        multiModal.classList.remove('open');
-    });
-}
+window.openPhotoLightbox = openPhotoLightbox;
+window.closePhotoLightbox = closePhotoLightbox;
