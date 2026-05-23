@@ -215,10 +215,15 @@
         </section>
     </main>
 
-    <!-- FAB Button -->
-    <button class="fab-add-btn" id="btnOpenModal">
-        <span class="btn-icon-animated">🥃</span>
-    </button>
+    <!-- FAB Buttons -->
+    <div class="fab-group">
+        <button class="fab-add-btn fab-multi" id="btnOpenMultiModal" title="Inserimento multiplo">
+            <span class="material-icons" style="font-size:22px;color:white;">add_circle</span>
+        </button>
+        <button class="fab-add-btn" id="btnOpenModal">
+            <span class="btn-icon-animated">🥃</span>
+        </button>
+    </div>
 
     <main class="main-content app-page" id="page-map">
         <div class="map-page-header">
@@ -366,6 +371,22 @@
             <div class="modal-actions">
                 <button class="btn-secondary" id="btnCloseModal">Annulla</button>
                 <button class="btn-primary" id="btnSaveShot">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Inserimento Multiplo -->
+    <div class="modal-overlay" id="multiModal">
+        <div class="modal-content" style="max-height:85vh; overflow-y:auto;">
+            <h3>Inserimento Multiplo</h3>
+            <p style="color:#8a99ad; font-size:13px; margin-bottom:16px;">Compila le righe e salva tutto insieme</p>
+            <div id="multiRowsContainer"></div>
+            <button class="btn-add-row" id="btnAddRow">
+                <span class="material-icons" style="font-size:18px;">add</span> Aggiungi riga
+            </button>
+            <div class="modal-actions" style="margin-top:16px;">
+                <button class="btn-secondary" id="btnCloseMultiModal">Annulla</button>
+                <button class="btn-primary" id="btnSaveMulti">Salva tutti</button>
             </div>
         </div>
     </div>
