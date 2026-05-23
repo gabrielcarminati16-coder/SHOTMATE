@@ -394,4 +394,42 @@ body {
     background: linear-gradient(135deg, #001c5c 0%, #001533 100%);
 }
 
+/* Reazioni sugli shot */
+.reactions-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+.react-btn {
+    background: #0a1f3d;
+    border: 1px solid #0d2a50;
+    border-radius: 20px;
+    padding: 3px 7px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: #e8f0ff;
+    transition: background 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+}
+.react-btn span {
+    font-size: 11px;
+    font-weight: bold;
+    color: #0077ff;
+}
+.react-btn.reacted {
+    background: #001c5c;
+    border-color: #0077ff;
+}
+.react-btn:active {
+    transform: scale(0.92);
+}
+
+/* Badge notifiche campanellina */
+#notifBadge {
+    pointer-events: none;
+}
 
