@@ -26,7 +26,6 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
-    padding-top: calc(15px + env(safe-area-inset-top));
     background-color: #00112c;
     position: sticky;
     top: 0;
@@ -53,7 +52,7 @@ body {
 /* FAB Button (Floating Action Button) */
 .fab-add-btn {
     position: fixed;
-    bottom: calc(80px + env(safe-area-inset-bottom));
+    bottom: calc(96px + env(safe-area-inset-bottom));
     right: 20px;
     width: 58px;
     height: 58px;
@@ -185,14 +184,24 @@ body {
 /* LA MAPPA NERA */
 #map {
     width: 100%;
-    height: calc(100vh - 280px);
+    height: calc(100vh - 280px - env(safe-area-inset-bottom) - env(safe-area-inset-top));
+    max-height: 62vh;
     border-radius: 20px;
     background-color: #000b1d;
     border: 1px solid rgba(0, 82, 204, 0.3);
 }
-.leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out {
+/* Inverti solo i tile della mappa, NON i marker custom */
+.leaflet-tile-pane {
     filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
 }
+.leaflet-control-zoom-in, .leaflet-control-zoom-out {
+    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+/* I marker divIcon non devono essere invertiti */
+.leaflet-marker-pane, .leaflet-popup-pane {
+    filter: none !important;
+}
+.gold-dot-marker { background: none !important; border: none !important; }
 
 /* Stili per il Pop-up Compatto con foto intera */
 .leaflet-popup-content-wrapper {
@@ -469,8 +478,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 20px 20px;
-    padding-top: calc(20px + env(safe-area-inset-top));
+    padding: 52px 20px 20px;
     border-bottom: 1px solid #0a2040;
 }
 .menu-drawer-logo {
@@ -558,4 +566,3 @@ body {
     font-size: 14px;
     color: #c8d8f0;
     }
-                 
