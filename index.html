@@ -143,9 +143,16 @@
     <main class="main-content app-page" id="page-amici">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <h3>Classifica Amici</h3>
-            <button id="btnOpenFriendModal" style="background: none; border: none; color: #0077ff; display: flex; align-items: center; gap: 4px; font-weight: bold; font-size: 14px; cursor: pointer;">
-                <span class="material-icons" style="font-size: 18px;">person_add</span> Inserisci Codice
-            </button>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <!-- Campanellina notifiche -->
+                <button id="btnOpenNotifications" style="background:none; border:none; color:#8a99ad; cursor:pointer; position:relative; padding:0; display:flex; align-items:center;">
+                    <span class="material-icons" style="font-size:22px;">notifications</span>
+                    <span id="notifBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#e74c3c; color:white; border-radius:50%; width:16px; height:16px; font-size:10px; font-weight:bold; display:none; align-items:center; justify-content:center;"></span>
+                </button>
+                <button id="btnOpenFriendModal" style="background: none; border: none; color: #0077ff; display: flex; align-items: center; gap: 4px; font-weight: bold; font-size: 14px; cursor: pointer;">
+                    <span class="material-icons" style="font-size: 18px;">person_add</span> Inserisci Codice
+                </button>
+            </div>
         </div>
         <p style="color: #8a99ad; font-size: 13px; margin-bottom: 20px;">Confronta i tuoi brindisi con i veri amici</p>
         <div class="friends-list" id="friendsLeaderboard"></div>
@@ -239,6 +246,19 @@
         </div>
     </nav>
 
+    <!-- Modal Notifiche -->
+    <div class="modal-overlay" id="notificationsModal">
+        <div class="modal-content" style="max-height: 80vh; display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="margin:0;">Novità Amici</h3>
+                <button id="btnCloseNotifications" style="background:none; border:none; color:#8a99ad; cursor:pointer;">
+                    <span class="material-icons" style="font-size:24px;">close</span>
+                </button>
+            </div>
+            <div id="notificationsList" style="overflow-y:auto; flex:1;"></div>
+        </div>
+    </div>
+
     <!-- Modal Collezione Amico -->
     <div class="modal-overlay" id="friendCollectionModal">
         <div class="modal-content" style="max-height: 88vh; display: flex; flex-direction: column; padding-bottom: 16px;">
@@ -256,11 +276,23 @@
                 </button>
             </div>
             <!-- Barra ricerca -->
-            <div class="search-input-wrapper" style="margin-bottom: 12px;">
+            <div class="search-input-wrapper" style="margin-bottom: 8px;">
                 <span class="material-icons search-icon-inline">search</span>
                 <input type="text" id="friendCollectionSearch" placeholder="Cerca città, stato, note...">
                 <button class="clear-search-btn" id="clearFriendSearch" style="display:none;">
                     <span class="material-icons" style="font-size:18px;">close</span>
+                </button>
+            </div>
+            <!-- Ordinamento -->
+            <div class="sort-buttons" style="margin-bottom:12px;">
+                <button class="sort-btn active" data-fsort="newest">
+                    <span class="material-icons" style="font-size:14px;">schedule</span> Recenti
+                </button>
+                <button class="sort-btn" data-fsort="oldest">
+                    <span class="material-icons" style="font-size:14px;">history</span> Vecchi
+                </button>
+                <button class="sort-btn" data-fsort="city">
+                    <span class="material-icons" style="font-size:14px;">sort_by_alpha</span> A-Z
                 </button>
             </div>
             <!-- Griglia bicchierini amico -->
