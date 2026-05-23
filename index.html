@@ -41,12 +41,147 @@
 <body>
 
     <header class="top-bar">
-        <span class="material-icons menu-icon">menu</span>
+        <span class="material-icons menu-icon" id="btnOpenMenu">menu</span>
         <h1 class="logo-cool">SHOTMATE</h1>
         <div class="profile-pic" id="btnOpenProfileModal" style="cursor: pointer; position: relative;">
             <span class="material-icons">account_circle</span>
         </div>
     </header>
+
+    <!-- DRAWER MENU -->
+    <div id="menuOverlay" class="menu-overlay"></div>
+    <div id="menuDrawer" class="menu-drawer">
+        <div class="menu-drawer-header">
+            <span class="menu-drawer-logo">🥃 ShotMate</span>
+            <button id="btnCloseMenu" class="menu-close-btn"><span class="material-icons">close</span></button>
+        </div>
+
+        <div class="menu-section-label">Condivisione</div>
+
+        <div class="menu-item" id="menuShareApp">
+            <span class="material-icons menu-item-icon" style="color:#0077ff;">share</span>
+            <div class="menu-item-text">
+                <span>Condividi App</span>
+                <small>Invita un amico su ShotMate</small>
+            </div>
+        </div>
+
+        <div class="menu-item" id="menuGenerateCard">
+            <span class="material-icons menu-item-icon" style="color:#f1c40f;">auto_awesome</span>
+            <div class="menu-item-text">
+                <span>Genera Card Profilo</span>
+                <small>Crea un'immagine con le tue stats</small>
+            </div>
+        </div>
+
+        <div class="menu-section-label">Info</div>
+
+        <div class="menu-item" id="menuHowItWorks">
+            <span class="material-icons menu-item-icon" style="color:#2ecc71;">help_outline</span>
+            <div class="menu-item-text">
+                <span>Come Funziona</span>
+                <small>Guida rapida per iniziare</small>
+            </div>
+        </div>
+
+        <div class="menu-item" id="menuChangelog">
+            <span class="material-icons menu-item-icon" style="color:#9b59b6;">new_releases</span>
+            <div class="menu-item-text">
+                <span>Novità</span>
+                <small>Ultime funzionalità aggiunte</small>
+            </div>
+        </div>
+
+        <div class="menu-section-label">Esporta</div>
+
+        <div class="menu-item" id="menuExportCSV">
+            <span class="material-icons menu-item-icon" style="color:#e67e22;">download</span>
+            <div class="menu-item-text">
+                <span>Esporta Collezione</span>
+                <small>Scarica i tuoi bicchierini in CSV</small>
+            </div>
+        </div>
+
+        <div class="menu-drawer-footer">
+            <p>ShotMate v1.0 · Fatto con 🥃</p>
+        </div>
+    </div>
+
+    <!-- Modal Come Funziona -->
+    <div class="modal-overlay" id="howItWorksModal">
+        <div class="modal-content" style="max-height:85vh; display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="margin:0;">Come Funziona</h3>
+                <button id="btnCloseHowItWorks" style="background:none;border:none;color:#8a99ad;cursor:pointer;"><span class="material-icons">close</span></button>
+            </div>
+            <div style="overflow-y:auto; flex:1;">
+                <div class="how-step">
+                    <span class="how-icon">🥃</span>
+                    <div><h4>Aggiungi un Bicchierino</h4><p>Tocca il pulsante 🥃 in basso a destra. Scatta una foto, inserisci la città, lo stato e la data. Salva e il bicchierino entra nella tua collezione!</p></div>
+                </div>
+                <div class="how-step">
+                    <span class="how-icon">🗺️</span>
+                    <div><h4>Guarda la Mappa</h4><p>Nella sezione Mappa vedi tutti i posti del mondo dove hai bevuto. Tocca un marker per vedere i dettagli e modificare.</p></div>
+                </div>
+                <div class="how-step">
+                    <span class="how-icon">📊</span>
+                    <div><h4>Segui le Stats</h4><p>Monitora quante città, stati e regioni italiane hai visitato. Sali di livello da Legno 🪵 fino all'Oro 🥇!</p></div>
+                </div>
+                <div class="how-step">
+                    <span class="how-icon">👥</span>
+                    <div><h4>Sfida gli Amici</h4><p>Condividi il tuo Codice Amico (nel profilo) con i tuoi amici. Aggiungetevi a vicenda e compare la classifica. Chi ha più bicchierini vince!</p></div>
+                </div>
+                <div class="how-step">
+                    <span class="how-icon">😍</span>
+                    <div><h4>Reagisci agli Shot</h4><p>Tocca un amico in classifica per vedere la sua collezione. Lascia una reazione 🥃🔥😍👑 sui suoi bicchierini!</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novità -->
+    <div class="modal-overlay" id="changelogModal">
+        <div class="modal-content" style="max-height:85vh; display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="margin:0;">Novità 🆕</h3>
+                <button id="btnCloseChangelog" style="background:none;border:none;color:#8a99ad;cursor:pointer;"><span class="material-icons">close</span></button>
+            </div>
+            <div style="overflow-y:auto; flex:1;">
+                <div class="changelog-version">
+                    <span class="changelog-badge">v1.0</span>
+                    <div class="changelog-items">
+                        <div class="changelog-item">🥃 Collezione bicchierini con foto</div>
+                        <div class="changelog-item">🗺️ Mappa mondiale dei tuoi shot</div>
+                        <div class="changelog-item">📊 Statistiche e badge livello</div>
+                        <div class="changelog-item">🇮🇹 Checklist 20 regioni d'Italia</div>
+                        <div class="changelog-item">👥 Sistema amici con codice univoco</div>
+                        <div class="changelog-item">🏆 Classifica amici in tempo reale</div>
+                        <div class="changelog-item">👀 Visualizza collezione degli amici</div>
+                        <div class="changelog-item">😍 Reazioni emoji sugli shot</div>
+                        <div class="changelog-item">🔔 Notifiche attività amici</div>
+                        <div class="changelog-item">📱 Installabile come app (PWA)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Card Profilo -->
+    <div class="modal-overlay" id="profileCardModal">
+        <div class="modal-content" style="max-height:90vh; display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="margin:0;">La Tua Card 🎴</h3>
+                <button id="btnCloseProfileCard" style="background:none;border:none;color:#8a99ad;cursor:pointer;"><span class="material-icons">close</span></button>
+            </div>
+            <div style="overflow-y:auto; flex:1; display:flex; flex-direction:column; align-items:center; gap:16px;">
+                <canvas id="profileCardCanvas" style="width:100%; border-radius:16px; max-width:340px;"></canvas>
+                <button class="btn-primary" id="btnDownloadCard" style="width:100%; max-width:340px;">
+                    <span class="material-icons" style="font-size:18px; vertical-align:middle;">download</span> Salva Immagine
+                </button>
+                <p style="color:#5d6d7e; font-size:12px; text-align:center;">Salvala e condividila su Instagram o WhatsApp!</p>
+            </div>
+        </div>
+    </div>
 
     <main class="main-content app-page active-page" id="page-home">
         <section class="collection-section">
@@ -327,4 +462,3 @@
     <script src="main.js"></script>
 </body>
 </html>
-
