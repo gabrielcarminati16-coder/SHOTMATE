@@ -698,7 +698,13 @@ body {
     gap: 12px;
     z-index: 1001;
 }
-.fab-group .fab-add-btn { position: static; bottom: auto; right: auto; }
+.fab-group .fab-add-btn {
+    position: relative !important;
+    bottom: auto !important;
+    right: auto !important;
+    top: auto !important;
+    left: auto !important;
+}
 .fab-multi {
     width: 44px !important;
     height: 44px !important;
